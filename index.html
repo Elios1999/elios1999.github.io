@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F4F3F9">
 <title>Pagéo — Tes pages. Tes clics. Tes clients sur WhatsApp.</title>
+<script>(function(){var s=location.pathname.split("/").filter(Boolean),q=new URLSearchParams(location.search).get("p");if((s.length===2&&!/[.]html?$/i.test(s[1]))||(q&&q.split("/").length===2))document.documentElement.className+=" pg-mode";})();</script>
 <meta name="description" content="Crée tes pages astuces, de vente et d’inscription. Les commandes arrivent sur ton WhatsApp, et tu suis tes vrais chiffres.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Pagéo">
@@ -1293,6 +1294,25 @@ html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
 body{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
 .pg img,.pg video,.pg iframe{max-width:100%}
 [data-pub="app"]{display:none!important}
+/* ====== Version 36 : ouverture d'une page publique sans passer par l'accueil de Pagéo ====== */
+html.pg-mode #v-accueil,html.pg-mode #v-compte,html.pg-mode #v-app{display:none!important}
+html.pg-mode:not(.pg-pret) body{background:#fff}
+html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid rgba(91,43,224,.18);border-top-color:#5B2BE0;animation:pgTourne .8s linear infinite}
+@keyframes pgTourne{to{transform:rotate(360deg)}}
+/* ====== Version 37 : « Un souci avec cette page ? » ====== */
+.pub-pied{font-size:11px!important;padding:8px 14px 16px!important;opacity:.75}
+.pub-pied a{color:inherit!important;text-decoration:none;border-bottom:1px dotted currentColor}
+.souci-fond{position:fixed;inset:0;z-index:99999;background:rgba(15,12,35,.55);display:flex;align-items:flex-end;justify-content:center;padding:12px;font-family:system-ui,-apple-system,sans-serif}
+@media (min-width:640px){.souci-fond{align-items:center}}
+.souci-boite{position:relative;width:100%;max-width:420px;background:#fff;color:#15112E;border-radius:20px;padding:22px 18px 18px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center}
+.souci-x{position:absolute;right:10px;top:10px;width:34px;height:34px;border-radius:50%;border:0;background:#F1F0F7;font-size:15px;cursor:pointer}
+.souci-ic{font-size:38px}.souci-boite h2{margin:6px 0 6px;font-size:19px}.souci-p{margin:0 0 14px;color:#5B5876;font-size:14.5px;line-height:1.5}
+.souci-choix{display:grid;gap:8px;margin-bottom:10px}
+.souci-choix button{text-align:left;border:1.5px solid #E4E2EE;background:#fff;border-radius:12px;padding:11px 12px;font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;color:#15112E}
+.souci-choix button.on{border-color:#5B2BE0;background:#F5F3FF}
+#souci-txt{width:100%;box-sizing:border-box;border:1.5px solid #E4E2EE;border-radius:12px;padding:10px;font:inherit;font-size:14px;resize:vertical;margin-bottom:12px}
+.souci-ok{width:100%;border:0;border-radius:12px;padding:13px;background:linear-gradient(90deg,#5B2BE0,#7C3AED);color:#fff;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+.souci-ok:disabled{opacity:.45;cursor:default}
 
 </style>
 </head>
@@ -2744,7 +2764,7 @@ async function chargerTout(){
   var r=await P.reglages();
   REGLAGES.paiement=r.lien_paiement||""; REGLAGES.affilie=r.lien_affiliation||""; REGLAGES.retrait=r.lien_retrait||""; REGLAGES.video=r.video_pub||""; REGLAGES.support=r.whatsapp_support||"";
   REGLAGES.prix=+r.prix_premium||5000; REGLAGES.commission=+r.commission||30; FILTRE_ACTIF=r.filtre_mots!=="non";
-  REGLAGES.badgeTexte=r.badge_texte||""; REGLAGES.groupe=r.lien_groupe||""; REGLAGES.groupeTexte=r.texte_groupe||""; REGLAGES._charge=true; LIMITE_GRATUIT=+r.limite_gratuit||3; LIMITE_CONTACTS=+r.limite_contacts_gratuit||100; REGLAGES.suppGratuit=r.suppression_gratuit!=="non";
+  REGLAGES.badgeTexte=r.badge_texte||""; REGLAGES.signalement=r.signalement||"gratuit"; REGLAGES.groupe=r.lien_groupe||""; REGLAGES.groupeTexte=r.texte_groupe||""; REGLAGES._charge=true; LIMITE_GRATUIT=+r.limite_gratuit||3; LIMITE_CONTACTS=+r.limite_contacts_gratuit||100; REGLAGES.suppGratuit=r.suppression_gratuit!=="non";
   try{ USER.parrainChariow=await P.lienPaiementPourMoi(); }catch(e){}
   /* pages + statistiques sur 1 an */
   var pages=await P.mesPages(), ids=pages.map(function(x){ return x.id; }), st=ids.length?await P.stats(ids,iso(JOURS[0]),iso(JOURS[NJ-1])):[];
@@ -2843,6 +2863,7 @@ if(REEL){
     if(t.closest("#enr-chariow")){ bloquer(e); var v=$("lien-chariow").value.trim(); if(v&&!/^https:\/\//i.test(v)) return toast("Le lien doit commencer par https://"); var r3=await P.majProfil({lien_chariow:v||null}); if(r3.error) return toast("Erreur : "+r3.error.message); USER.chariow=v; affiliation(); toast(v?"Lien d’affiliation enregistré ✅":"Lien retiré"); return; }
     if(t.closest("#r-ok")){ bloquer(e); var o={lien_paiement:$("r-paiement").value.trim(),lien_affiliation:$("r-affilie").value.trim(),lien_retrait:$("r-retrait").value.trim(),video_pub:$("r-video").value.trim(),whatsapp_support:$("r-support").value.trim(),prix_premium:+$("r-prix").value||5000,commission:+$("r-commission").value||30};
       if($("r-badge")) o.badge_texte=$("r-badge").value.trim();
+      if($("r-signal")) o.signalement=$("r-signal").value;
       if($("r-groupe")){ o.lien_groupe=$("r-groupe").value.trim(); o.texte_groupe=$("r-groupe-txt").value.trim(); }
       if($("r-limpages")){ o.limite_gratuit=Math.max(1,+$("r-limpages").value||3); o.limite_contacts_gratuit=Math.max(1,+$("r-limcontacts").value||100); o.suppression_gratuit=$("r-suppgratuit").value; }
       var r4=await P.enregistrerReglages(o); if(r4.error) return toast("Erreur : "+r4.error.message); REGLAGES.paiement=o.lien_paiement; REGLAGES.affilie=o.lien_affiliation; REGLAGES.retrait=o.lien_retrait; REGLAGES.video=o.video_pub; REGLAGES.support=o.whatsapp_support; REGLAGES.prix=o.prix_premium; REGLAGES.commission=o.commission; if(o.badge_texte!==undefined) REGLAGES.badgeTexte=o.badge_texte; if(o.lien_groupe!==undefined){ REGLAGES.groupe=o.lien_groupe; REGLAGES.groupeTexte=o.texte_groupe; carteGroupe(); } if(o.limite_gratuit){ LIMITE_GRATUIT=o.limite_gratuit; LIMITE_CONTACTS=o.limite_contacts_gratuit; REGLAGES.suppGratuit=o.suppression_gratuit!=="non"; appliquerPlan(); banniereAbo(); } appliquerLiens(); initPubs(); $("r-etat").textContent="✅ Enregistré pour tous les utilisateurs."; return; }
@@ -3021,7 +3042,7 @@ async function afficherPagePublique(){
   var envoiVisite=null; if(unJour(vu)){ envoiVisite=P.compter(page.id,"visites",pc,src); }
   document.title=page.titre;
   window.PAGEO_PUBLIC={id:page.id,type:page.type,code:PUBLIC.code,premium:!!page.premium,badge:page.badge!==false,url:P.url,cle:P.cle};
-  try{ var rgp=await Promise.race([P.reglages(),new Promise(function(r){ setTimeout(function(){ r({}); },2500); })]); REGLAGES.badgeTexte=rgp.badge_texte||""; }catch(e){}
+  try{ var rgp=await Promise.race([P.reglages(),new Promise(function(r){ setTimeout(function(){ r({}); },2500); })]); REGLAGES.badgeTexte=rgp.badge_texte||""; REGLAGES.signalement=rgp.signalement||"gratuit"; }catch(e){}
   if(page.bloquee){ document.body.innerHTML='<div style="font-family:system-ui,sans-serif;text-align:center;padding:80px 22px;max-width:520px;margin:0 auto"><div style="font-size:46px">⏳</div><h1 style="font-size:22px;margin:10px 0">Page momentanément indisponible</h1><p style="color:#555;line-height:1.5">Cette page n’est pas disponible pour le moment. Reviens un peu plus tard.</p></div>'; return; }
   if(page.mode==="html"){ var h=page.html||"";
     var cfg={url:P.url,cle:P.cle,id:page.id,red:page.redirection||"",type:page.type,avis:!!(page.contenu&&page.contenu.avis),badge:badgeVisible(page.contenu&&page.contenu.badge)?badgePageo(page.contenu&&page.contenu.badge,false,PUBLIC.code,true):""};
@@ -3036,7 +3057,7 @@ async function afficherPagePublique(){
     if(!/name=["']viewport/i.test(h)){ var vp='<meta name="viewport" content="width=device-width, initial-scale=1">'; h=/<head[^>]*>/i.test(h)?h.replace(/<head[^>]*>/i,function(x){ return x+vp; }):vp+h; }
     clearTimeout(minH); document.open(); document.write(h); document.close(); return; }
   var c=page.contenu||{}, blocs=c.blocs||[], v=document.createElement("div"); v.id="v-public";
-  v.innerHTML='<div class="pg" id="pg-public" style="background-color:'+(c.fond||"#fff")+';'+(c.imgFond?"background-image:url('"+c.imgFond+"');":"")+'display:grid;gap:'+(c.espace||0)+'px;align-content:start">'+blocs.map(rendreBloc).join("")+'</div>'+badgePageo(c.badge,false,PUBLIC.code)+'<p class="pub-pied"><a href="#" id="pub-signaler">Signaler cette page</a></p>';
+  v.innerHTML='<div class="pg" id="pg-public" style="background-color:'+(c.fond||"#fff")+';'+(c.imgFond?"background-image:url('"+c.imgFond+"');":"")+'display:grid;gap:'+(c.espace||0)+'px;align-content:start">'+blocs.map(rendreBloc).join("")+'</div>'+badgePageo(c.badge,false,PUBLIC.code)+(montrerSouci(page)?'<p class="pub-pied"><a href="#" id="pub-signaler">Un souci avec cette page ? Dis-le-nous</a></p>':'');
   document.body.appendChild(v); blocs.forEach(function(b){ police(b.s.police); });
   var pg=$("pg-public"), parId={}; blocs.forEach(function(b){ parId[b.id]=b; });
   brancherFormulaires(pg,function(f){ var el=f.closest("[data-b]"); return el?parId[el.dataset.b]:null; });
@@ -3047,7 +3068,7 @@ async function afficherPagePublique(){
     var rj=e.target.closest("[data-rejoindre]"); if(rj){ P.compter(page.id,"rejoint"); }
   });
   pg.addEventListener("play",function(e){ if(e.target&&e.target.tagName==="VIDEO"&&unJour("pageo-lect-"+page.id+"-"+(e.target.currentSrc||e.target.src||""))){ P.compter(page.id,"vues"); } },true);
-  $("pub-signaler").addEventListener("click",function(e){ e.preventDefault(); var r=prompt("Pourquoi signales-tu cette page ?"); if(r){ P.signaler(page.id,r); alert("Merci, la page a été signalée."); } });
+  if($("pub-signaler")) $("pub-signaler").addEventListener("click",function(e){ e.preventDefault(); fenetreSouci(page); });
   pg.addEventListener("submit",async function(e){
     e.preventDefault(); var f=e.target, b=parId[f.closest("[data-b]").dataset.b], cmd=b.t==="commande"||b.t==="catalogue"||(b.t==="video"&&b.c.vendre==="oui");
     var tel=f.tel?f.tel.value.replace(/\D/g,""):"", pz=f.pays?f.pays.value:pc, ind=pays(pz)[1];
@@ -5152,6 +5173,37 @@ window.addEventListener("pagehide",pauseVideosPub);
 window.addEventListener("hashchange",pauseVideosPub);
 if("IntersectionObserver" in window){ var _obsPub=new IntersectionObserver(function(l){ l.forEach(function(x){ if(!x.isIntersecting) pauseVideosPub(); }); },{threshold:0.25});
   setInterval(function(){ [].forEach.call(document.querySelectorAll(".pub-lecteur"),function(ec){ if(!ec._obs){ ec._obs=1; _obsPub.observe(ec); } }); },1000); }
+
+/* =====================================================================
+   VERSION 36 — Page publique : écran neutre jusqu'à ce que la page soit prête
+   ===================================================================== */
+(function(){ var r=document.documentElement; if(!r.classList.contains("pg-mode")) return;
+  var pret=function(){ if(document.getElementById("v-public")||!document.getElementById("v-accueil")){ r.classList.add("pg-pret"); return true; } return false; };
+  if(pret()) return; var o=new MutationObserver(function(){ if(pret()) o.disconnect(); }); o.observe(document.body,{childList:true,subtree:false});
+  setTimeout(function(){ r.classList.add("pg-pret"); },12000); /* sécurité */ })();
+
+/* =====================================================================
+   VERSION 37 — « Un souci avec cette page ? » : discret, gentil, réglable par l'administrateur
+   ===================================================================== */
+/* Réglage : gratuit (pages du plan gratuit seulement, par défaut) · tous · aucun */
+function montrerSouci(page){ var m=REGLAGES.signalement||"gratuit"; if(m==="aucun") return false; if(m==="tous") return true; return !(page&&page.premium); }
+function fenetreSouci(page){ var z=document.getElementById("souci-fen"); if(z) z.remove();
+  var raisons=[["arnaque","🚫 Arnaque ou fausse promesse"],["livraison","📦 Commande jamais reçue"],["choquant","😟 Contenu choquant ou interdit"],["autre","✍️ Autre chose"]];
+  document.body.insertAdjacentHTML("beforeend",'<div id="souci-fen" class="souci-fond" role="dialog" aria-modal="true"><div class="souci-boite"><button type="button" class="souci-x" aria-label="Fermer">✕</button>'+
+    '<div class="souci-ic">🛟</div><h2>Un souci avec cette page ?</h2><p class="souci-p">Dis-nous ce qui ne va pas. Notre équipe vérifie chaque message, en toute discrétion.</p>'+
+    '<div class="souci-choix">'+raisons.map(function(r){ return '<button type="button" data-souci="'+r[0]+'">'+r[1]+'</button>'; }).join("")+'</div>'+
+    '<textarea id="souci-txt" rows="3" placeholder="Explique en quelques mots (facultatif)"></textarea><button type="button" class="souci-ok" disabled>Envoyer</button></div></div>');
+  z=document.getElementById("souci-fen"); var choix="";
+  var fermer=function(){ z.remove(); }; z.querySelector(".souci-x").onclick=fermer; z.addEventListener("click",function(e){ if(e.target===z) fermer(); });
+  [].forEach.call(z.querySelectorAll("[data-souci]"),function(b){ b.onclick=function(){ choix=b.textContent; [].forEach.call(z.querySelectorAll("[data-souci]"),function(x){ x.classList.toggle("on",x===b); }); z.querySelector(".souci-ok").disabled=false; }; });
+  z.querySelector(".souci-ok").onclick=function(){ var t=z.querySelector("#souci-txt").value.trim(); try{ window.Pageo.signaler(page.id,(choix+(t?" — "+t:"")).slice(0,500)); }catch(e){}
+    z.querySelector(".souci-boite").innerHTML='<div class="souci-ic">🙏</div><h2>Merci !</h2><p class="souci-p">Ton message a bien été envoyé. Notre équipe va vérifier cette page.</p><button type="button" class="souci-ok">Fermer</button>'; z.querySelector(".souci-ok").onclick=fermer; };
+}
+/* Administration → Réglages : où afficher le lien */
+setInterval(function(){ var b=document.getElementById("r-badge"); if(!b||document.getElementById("r-signal")) return; var ch=b.closest(".champ"); if(!ch) return;
+  var v=REGLAGES.signalement||"gratuit";
+  ch.insertAdjacentHTML("afterend",'<div class="champ large"><label for="r-signal">Lien « Un souci avec cette page ? » (en bas des pages)</label><select id="r-signal"><option value="gratuit">Pages du plan gratuit seulement (conseillé)</option><option value="tous">Toutes les pages (gratuit et Premium)</option><option value="aucun">Masqué partout</option></select><p class="aide" style="margin:4px 0 0">Permet aux visiteurs de signaler une arnaque. Les messages arrivent dans « Signalements ».</p></div>');
+  document.getElementById("r-signal").value=v; },800);
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
