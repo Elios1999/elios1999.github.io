@@ -1313,6 +1313,17 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 #souci-txt{width:100%;box-sizing:border-box;border:1.5px solid #E4E2EE;border-radius:12px;padding:10px;font:inherit;font-size:14px;resize:vertical;margin-bottom:12px}
 .souci-ok{width:100%;border:0;border-radius:12px;padding:13px;background:linear-gradient(90deg,#5B2BE0,#7C3AED);color:#fff;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
 .souci-ok:disabled{opacity:.45;cursor:default}
+/* ====== Version 38 : bouton « Envoyer ma commande sur WhatsApp » + message rassurant Facebook + période des commandes ====== */
+.cmd-ok-envoi{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;width:100%;max-width:380px;padding:15px 18px;border-radius:14px;background:#22C55E;color:#fff!important;font-weight:800;font-size:17px;text-decoration:none;box-shadow:0 8px 22px rgba(34,197,94,.35);animation:envoiPouls 1.8s ease-in-out infinite}
+@keyframes envoiPouls{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+#fb-rassure{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:999999;width:calc(100% - 24px);max-width:440px;background:#15112E;color:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 14px 34px rgba(0,0,0,.35);font:600 15px/1.45 system-ui,-apple-system,sans-serif;display:flex;gap:10px;align-items:flex-start;animation:fbRass .25s ease}
+#fb-rassure b{color:#FDE68A}#fb-rassure .fr-ic{font-size:24px;line-height:1}
+@keyframes fbRass{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
+.periode{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+.periode button,.periode input{border:1.5px solid #DDD6FE;background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;color:#15112E;cursor:pointer}
+.periode button[aria-pressed="true"]{background:#5B2BE0;border-color:#5B2BE0;color:#fff}
+.periode input{padding:5px 10px}
+.heure-cmd{display:block;margin-top:3px;font-size:12px;color:#64748B;font-weight:600}
 
 </style>
 </head>
@@ -2695,7 +2706,7 @@ function brancherFormulaires(racine,trouverBloc){
 var _chOrig=ch;
 ch=function(id,lab,type,val,b){
   if(type==="formcfg"){ var c=val||champsDefaut(); return '<div class="champ large"><label>'+lab+'</label><div class="cfg-champs">'+CH_CMD.map(function(x){ var v=c[x[0]]||[0,0]; return '<div class="cfg-l"><span>'+x[1]+'</span><label><input type="checkbox" data-cfg="'+x[0]+'" data-i="0"'+(v[0]?" checked":"")+'> Afficher</label><label><input type="checkbox" data-cfg="'+x[0]+'" data-i="1"'+(v[1]?" checked":"")+'> Obligatoire</label></div>'; }).join("")+'</div></div>'; }
-  if(type==="choixdest") return '<div class="champ"><label for="'+id+'">'+lab+'</label><select id="'+id+'" data-c><option value="whatsapp"'+(val==="whatsapp"?" selected":"")+'>Pagéo + mon WhatsApp</option><option value="pageo"'+(val==="pageo"?" selected":"")+'>Seulement dans Pagéo</option></select></div>';
+  if(type==="choixdest") return '<div class="champ"><label for="'+id+'">'+lab+'</label><select id="'+id+'" data-c><option value="whatsapp"'+(val==="whatsapp"?" selected":"")+'>💬 Pagéo + bouton « Envoyer sur mon WhatsApp » pour le client</option><option value="pageo"'+(val==="pageo"?" selected":"")+'>📋 Seulement dans Pagéo (je recontacte moi-même le client)</option></select><p class="aide" style="margin:4px 0 0">Dans les deux cas, la commande est d’abord enregistrée dans Pagéo, avec le numéro du client.</p></div>';
   return _chOrig(id,lab,type,val,b);
 };
 document.addEventListener("change",function(e){ var t=e.target; if(!t.matches||!t.matches("[data-cfg]")) return; var b=bloc(ED.sel); if(!b) return; b.c.champs=b.c.champs||champsDefaut(); var k=t.dataset.cfg, i=+t.dataset.i, v=b.c.champs[k]||[0,0];
@@ -3092,12 +3103,16 @@ async function afficherPagePublique(){
     else { /* Commande : enregistrée, belle confirmation SANS quitter la page (pas de message « application externe » de Facebook) */
       var txt="Bonjour, je viens de commander sur votre page « "+page.titre+" » :\n• "+(d.produit||"")+(d.quantite&&!/×/.test(d.produit||"")?" × "+d.quantite:"")+(d.montant?"\n• Total : "+nb(d.montant)+" "+d.devise:"")+(f.photo&&f.photo.value?"\n• Photo : "+f.photo.value:"")+(d.nom?"\n• Nom : "+d.nom:"")+"\n• Téléphone : "+d.telephone+(d.ville?"\n• Ville : "+d.ville+(d.zone?" ("+d.zone+")":""):"")+(d.adresse?"\n• Adresse : "+d.adresse:"");
       var prenom=(d.nom||"").split(/\s+/)[0], numV=String(b.c.numero||"").replace(/\D/g,"");
-      var perso=b.c.merci&&MERCI_DEFAUTS.indexOf(String(b.c.merci).trim())<0;
-      f.outerHTML='<div class="cmd-ok"><div class="cmd-ok-ic">✅</div><p class="cmd-ok-t">Merci'+(prenom?" "+esc(prenom):"")+', ta commande est bien enregistrée !</p>'+
-        (d.produit?'<div class="cmd-ok-r">🛍️ '+esc(d.produit)+(d.quantite&&!/×/.test(d.produit||"")?" × "+d.quantite:"")+(d.montant?'<br><b>Total : '+nb(d.montant)+" "+esc(d.devise)+'</b>':'')+'</div>':'')+
-        (perso?'<p class="cmd-ok-v">'+esc(b.c.merci).replace(/\n/g,"<br>")+'</p>':'')+   /* le message écrit par le vendeur, tel quel */
-        '<p class="cmd-ok-s">📞 Le vendeur va te contacter très vite'+(d.telephone?' au <b>'+esc(d.telephone)+'</b>':'')+' pour la livraison.</p>'+
-        (numV&&b.c.destination!=="pageo"?'<a class="cmd-ok-wa" href="https://wa.me/'+numV+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">💬 Écrire au vendeur maintenant (facultatif)</a>':'')+'</div>';
+      var perso=b.c.merci&&MERCI_DEFAUTS.indexOf(String(b.c.merci).trim())<0, versWa=numV&&b.c.destination!=="pageo";
+      var recap=(d.produit?'<div class="cmd-ok-r">🛍️ '+esc(d.produit)+(d.quantite&&!/×/.test(d.produit||"")?" × "+d.quantite:"")+(d.montant?'<br><b>Total : '+nb(d.montant)+" "+esc(d.devise)+'</b>':'')+'</div>':'');
+      var mot=perso?'<p class="cmd-ok-v">'+esc(b.c.merci).replace(/\n/g,"<br>")+'</p>':'';
+      if(versWa){ /* Option WhatsApp : la commande est enregistrée, puis le client l'envoie au vendeur d'un toucher */
+        f.outerHTML='<div class="cmd-ok"><div class="cmd-ok-ic">✅</div><p class="cmd-ok-t">Commande bien reçue'+(prenom?", "+esc(prenom):"")+' !</p>'+recap+mot+
+          '<p class="cmd-ok-s"><b>Dernière étape :</b> touche le bouton pour envoyer ta commande au vendeur sur WhatsApp.</p>'+
+          '<a class="cmd-ok-envoi" href="https://wa.me/'+numV+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">💬 Envoyer ma commande sur WhatsApp</a></div>'; }
+      else { /* Option Pagéo seulement : le vendeur recontacte le client */
+        f.outerHTML='<div class="cmd-ok"><div class="cmd-ok-ic">🎉</div><p class="cmd-ok-t">Félicitations'+(prenom?" "+esc(prenom):"")+', ta commande a été validée avec succès !</p>'+recap+mot+
+          '<p class="cmd-ok-s">📞 Nous allons te contacter'+(d.telephone?' au <b>'+esc(d.telephone)+'</b>':'')+' pour la livraison.</p></div>'; }
     }
     if(red&&cmd){ setTimeout(function(){ location.href=red; },2500); }
   });
@@ -5204,6 +5219,58 @@ setInterval(function(){ var b=document.getElementById("r-badge"); if(!b||documen
   var v=REGLAGES.signalement||"gratuit";
   ch.insertAdjacentHTML("afterend",'<div class="champ large"><label for="r-signal">Lien « Un souci avec cette page ? » (en bas des pages)</label><select id="r-signal"><option value="gratuit">Pages du plan gratuit seulement (conseillé)</option><option value="tous">Toutes les pages (gratuit et Premium)</option><option value="aucun">Masqué partout</option></select><p class="aide" style="margin:4px 0 0">Permet aux visiteurs de signaler une arnaque. Les messages arrivent dans « Signalements ».</p></div>');
   document.getElementById("r-signal").value=v; },800);
+
+/* =====================================================================
+   VERSION 38 — Message rassurant (Facebook/Instagram) avant d'ouvrir WhatsApp
+   + Commandes et inscrits par période, avec la date et l'heure
+   ===================================================================== */
+/* ---------- 1. « Pas de panique ! Touche Continuer » ---------- */
+function rassurerFacebook(){
+  if(!/FBAN|FBAV|FB_IAB|FBIOS|Instagram/i.test(navigator.userAgent||"")) return;
+  function montrer(app){ var z=document.getElementById("fb-rassure"); if(z) z.remove();
+    document.body.insertAdjacentHTML("beforeend",'<div id="fb-rassure" role="status"><span class="fr-ic">😊</span><span><b>Pas de panique !</b> Facebook te demande juste la permission d’ouvrir '+app+'. Touche <b>« Continuer »</b>.</span></div>');
+    clearTimeout(window._frT); window._frT=setTimeout(function(){ var y=document.getElementById("fb-rassure"); if(y) y.remove(); },9000); }
+  document.addEventListener("click",function(e){ var t=e.target; if(!t.closest) return;
+    var a=t.closest("a[href]"), h=a?a.getAttribute("href")||"":"", app="";
+    if(/wa\.me|whatsapp/i.test(h)) app="WhatsApp"; else if(/^tel:/i.test(h)) app="le téléphone"; else if(/t\.me\/|telegram/i.test(h)) app="Telegram";
+    if(!app&&t.closest("[data-wa]")) app="WhatsApp";
+    if(!app) return; montrer(app);
+    if(a&&/^(https?:|tel:)/i.test(h)&&/wa\.me|whatsapp|^tel:|t\.me\/|telegram/i.test(h)&&!e.defaultPrevented){ e.preventDefault(); setTimeout(function(){ location.href=h; },900); } /* le temps de lire le message */
+  },true);
+}
+rassurerFacebook();
+
+/* ---------- 2. Commandes et inscrits par période ---------- */
+var PERIODE_CMD="jour", DATE_CMD="";
+function jourDe(d){ var x=new Date(d); return x.getFullYear()+"-"+(x.getMonth()+1)+"-"+x.getDate(); }
+function dansPeriode(c){ if(PERIODE_CMD==="tout"||!c.cree) return PERIODE_CMD==="tout"; var t=new Date(c.cree), n=new Date();
+  if(PERIODE_CMD==="jour") return jourDe(t)===jourDe(n);
+  if(PERIODE_CMD==="hier"){ var h=new Date(n); h.setDate(n.getDate()-1); return jourDe(t)===jourDe(h); }
+  if(PERIODE_CMD==="7j") return n-t<=7*864e5;
+  if(PERIODE_CMD==="date"&&DATE_CMD){ var p=DATE_CMD.split("-"); return jourDe(t)===(+p[0])+"-"+(+p[1])+"-"+(+p[2]); }
+  return true; }
+function heureLisible(d){ if(!d) return ""; var t=new Date(d), n=new Date(), h=new Date(n); h.setDate(n.getDate()-1);
+  var hh=t.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}).replace(":"," h ");
+  if(jourDe(t)===jourDe(n)) return "Aujourd’hui à "+hh; if(jourDe(t)===jourDe(h)) return "Hier à "+hh;
+  return t.toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+" à "+hh; }
+var _cmdV38=commandes;
+commandes=function(){ _cmdV38.apply(this,arguments);
+  var f=$("filtre-cmd"); if(!f) return; var z=$("periode-cmd");
+  if(!z){ f.insertAdjacentHTML("afterend",'<div class="periode" id="periode-cmd"></div>'); z=$("periode-cmd"); }
+  z.innerHTML=[["jour","Aujourd’hui"],["hier","Hier"],["7j","7 derniers jours"],["tout","Tout"]].map(function(p){ return '<button type="button" data-per="'+p[0]+'" aria-pressed="'+(PERIODE_CMD===p[0])+'">'+p[1]+'</button>'; }).join("")+
+    '<label style="display:inline-flex;align-items:center;gap:6px">📅 <input type="date" id="date-cmd" value="'+(PERIODE_CMD==="date"?DATE_CMD:"")+'"></label>';
+  /* les lignes de la période, avec la date et l'heure */
+  var vis=0;
+  [].forEach.call(document.querySelectorAll("#tb-cmd tr[data-fiche]"),function(tr){ var c=CONTACTS[+tr.dataset.fiche]; if(!c) return; var ok=dansPeriode(c); tr.style.display=ok?"":"none"; if(ok) vis++;
+    var td=tr.children[0]; if(td&&!td.querySelector(".heure-cmd")) td.insertAdjacentHTML("beforeend",'<span class="heure-cmd">🕒 '+heureLisible(c.cree)+'</span>'); });
+  var vide=$("cmd-vide-per"); if(vide) vide.remove();
+  if(!vis&&document.querySelector("#tb-cmd tr[data-fiche]")) $("tb-cmd").insertAdjacentHTML("beforeend",'<tr id="cmd-vide-per"><td colspan="6" class="aide" style="text-align:center;padding:18px">Rien pour cette période. Choisis « Tout » ou une autre date.</td></tr>');
+  /* les chiffres du haut suivent la période */
+  var per=CONTACTS.filter(dansPeriode), cmd=per.filter(function(c){ return c.type==="Commande"; });
+  $("cmd-chiffres").innerHTML=chiffre("À confirmer",nb(cmd.filter(function(c){return c.statut==="Non confirmée";}).length))+chiffre("Confirmées",nb(cmd.filter(function(c){return c.statut==="Confirmée";}).length))+chiffre("Livrées",nb(cmd.filter(function(c){return c.statut==="Livrée";}).length))+chiffre("Inscrits",nb(per.filter(function(c){return c.type==="Inscrit";}).length));
+};
+document.addEventListener("click",function(e){ var b=e.target.closest&&e.target.closest("[data-per]"); if(!b) return; PERIODE_CMD=b.dataset.per; DATE_CMD=""; commandes(); });
+document.addEventListener("change",function(e){ if(e.target&&e.target.id==="date-cmd"){ DATE_CMD=e.target.value; PERIODE_CMD=DATE_CMD?"date":"tout"; commandes(); } });
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
