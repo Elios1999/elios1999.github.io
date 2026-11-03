@@ -1261,6 +1261,38 @@ body.glisse-en-cours{user-select:none;-webkit-user-select:none}
 /* ====== Version 32 : lecteur de la vidéo publicitaire ====== */
 .pub-lecteur{position:relative;background:#000;border-radius:18px;overflow:hidden}
 .pub-lecteur iframe,.pub-lecteur video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+/* ====== Version 33 : affiche de la vidéo publicitaire ====== */
+.pub-affiche{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;cursor:pointer;background:linear-gradient(135deg,#3B1C9E,#7C3AED 55%,#F97316) center/cover no-repeat;font-family:inherit}
+.pub-voile{position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,17,46,.15),rgba(21,17,46,.65))}
+.pub-play{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#F97316,#EC4899);display:grid;place-items:center;box-shadow:0 0 0 0 rgba(249,115,22,.6);animation:pubPouls 1.8s ease-out infinite}
+.pub-play span{color:#fff;font-size:32px;margin-left:6px;line-height:1}
+.pub-invite{position:absolute;left:0;right:0;bottom:14px;padding:0 14px;color:#fff;font-weight:800;font-size:clamp(14px,3.6vw,18px);text-align:center;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.pub-affiche:hover .pub-play{transform:translate(-50%,-50%) scale(1.07)}
+@keyframes pubPouls{0%{box-shadow:0 0 0 0 rgba(249,115,22,.55)}100%{box-shadow:0 0 0 26px rgba(249,115,22,0)}}
+@media (prefers-reduced-motion:reduce){.pub-play{animation:none}}
+/* ====== Version 34 : « Bloc supprimé » discret et rapide ====== */
+#toast-annuler{padding:8px 14px!important;font-size:13.5px;pointer-events:none;opacity:.95;transition:opacity .25s}
+#toast-annuler.ta-part{opacity:0}
+/* ====== Version 34 : message de suppression bref + barre de la vidéo ====== */
+#toast-annuler{pointer-events:none;padding:8px 14px!important;font-size:13.5px;opacity:.95;animation:taBref 1.5s ease forwards!important}
+@keyframes taBref{0%{opacity:0;transform:translate(-50%,8px)}12%{opacity:.95;transform:translate(-50%,0)}80%{opacity:.95}100%{opacity:0}}
+.pb2{display:flex;align-items:center;gap:10px;padding:10px 4px 2px}
+.pb2-t{font-weight:800;font-size:13.5px;white-space:nowrap;opacity:.85}
+.pb2-ligne{--p:0%;flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:99px;background:linear-gradient(90deg,#7C3AED,#F97316) 0/var(--p) 100% no-repeat,rgba(127,127,127,.28);cursor:pointer;margin:0}
+.pb2-ligne::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #F97316;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.pb2-ligne::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #F97316}
+.pb2-revoir{border:0;border-radius:999px;padding:7px 12px;background:#15112E;color:#fff;font:inherit;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap}
+.pub-fin{position:absolute;inset:0;z-index:3;border:0;background:rgba(21,17,46,.72);color:#fff;font:inherit;font-size:18px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.pub-fin[hidden]{display:none}.pub-fin span{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#F97316,#EC4899);font-size:26px}
+.pub2 .pb2{color:#fff;padding:10px 12px 4px;box-sizing:border-box;max-width:100%}
+.pub2 .pb2-t{color:#fff;opacity:.9}
+.pub2 .pb2-revoir{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);flex:none}
+.pb2-ligne{min-width:0}
+/* ====== Version 35 : jamais de texte grossi par le navigateur de Facebook ; pas de vidéo dans le tableau de bord ====== */
+html{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
+body{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
+.pg img,.pg video,.pg iframe{max-width:100%}
+[data-pub="app"]{display:none!important}
 
 </style>
 </head>
@@ -2730,7 +2762,7 @@ async function chargerTout(){
   viderEt(PAGES,liste);
   /* commandes et inscrits */
   var cs=await P.contacts();
-  viderEt(CONTACTS,cs.map(function(c){ return {id:c.id,nom:c.nom,pays:c.pays||"BF",tel:c.telephone,ville:c.ville||"",zone:c.zone||"",adresse:c.adresse||"",email:c.email||"",message:c.message||"",page:parId[c.page_id]||{titre:(c.pages&&c.pages.titre)||"Page"},type:c.type==="commande"?"Commande":"Inscrit",statut:c.type==="commande"?STATUT_DE[c.statut]||"Non confirmée":undefined,rejoint:c.statut==="rejoint",qte:c.quantite,produit:c.produit,montant:c.montant!=null?+c.montant:null,devise:c.devise||"FCFA",canal:c.canal||"formulaire",relanceLe:c.relance_le||null,converti:!!c.converti,lu:c.lu,cree:c.cree_le,quand:ilYa(c.cree_le)}; }));
+  viderEt(CONTACTS,cs.filter(function(c){ return String(c.telephone||"").replace(/\D/g,"").length>=6||!!c.email; }).map(function(c){ return {id:c.id,nom:c.nom,pays:c.pays||"BF",tel:c.telephone,ville:c.ville||"",zone:c.zone||"",adresse:c.adresse||"",email:c.email||"",message:c.message||"",page:parId[c.page_id]||{titre:(c.pages&&c.pages.titre)||"Page"},type:c.type==="commande"?"Commande":"Inscrit",statut:c.type==="commande"?STATUT_DE[c.statut]||"Non confirmée":undefined,rejoint:c.statut==="rejoint",qte:c.quantite,produit:c.produit,montant:c.montant!=null?+c.montant:null,devise:c.devise||"FCFA",canal:c.canal||"formulaire",relanceLe:c.relance_le||null,converti:!!c.converti,lu:c.lu,cree:c.cree_le,quand:ilYa(c.cree_le)}; }));
   /* filleuls */
   var fs=await P.mesFilleuls();
   viderEt(FILLEULS,fs.map(function(f){ var der=f.derniere_activite?new Date(f.derniere_activite+"T12:00:00"):null; return {id:f.id,nom:(f.prenom+" "+f.nom).trim(),pays:f.pays||"BF",plan:f.plan==="premium"?"Premium":"Gratuit",actif:!!der&&(Date.now()-der)<14*86400000,der:der?ilYa(der):"jamais",pages:f.pages||0,tel:pays(f.pays||"BF")[1]+" "+(f.telephone||"")}; }));
@@ -2764,6 +2796,7 @@ function reconstruireMenus(){
 function ecouter(){
   window.Pageo.ecouterCommandes(function(c){
     if(c.proprietaire!==USER.id) return;
+    if(String(c.telephone||"").replace(/\D/g,"").length<6&&!c.email) return; /* jamais de notification sans numéro */
     var o={id:c.id,nom:c.nom,pays:c.pays||"BF",tel:c.telephone,ville:c.ville||"",zone:c.zone||"",page:PAGES.filter(function(p){ return p.id===c.page_id; })[0]||{titre:"Page"},type:c.type==="commande"?"Commande":"Inscrit",statut:c.type==="commande"?"Non confirmée":undefined,qte:c.quantite,produit:c.produit,montant:c.montant!=null?+c.montant:null,devise:c.devise||"FCFA",canal:c.canal||"formulaire",relanceLe:c.relance_le||null,converti:!!c.converti,lu:false,cree:c.cree_le||new Date().toISOString(),quand:"à l’instant"};
     CONTACTS.unshift(o); rendreNotifs();
     var titre=o.type==="Commande"?"🛒 Nouvelle commande":"👥 Nouvel inscrit", corps=o.nom+" · "+o.page.titre;
@@ -2910,9 +2943,9 @@ function suiviHTML(cfg){
   document.addEventListener("click",function(e){
     var a=e.target.closest&&e.target.closest("a,button,[role=button],input[type=submit],input[type=button]"); if(!a||a.closest("#pageo-avis")) return;
     var href=a.getAttribute("href")||"";
-    if(/wa\.me|whatsapp|api\.whatsapp/i.test(href)){ if(une("wa","wa")){ var mw=""; try{ mw=decodeURIComponent((href.split("text=")[1]||"").split("&")[0].replace(/\+/g," ")); }catch(x){} rpc("contact_clic",{p_page:cfg.id,p_canal:"whatsapp",p_message:mw||"Contact WhatsApp depuis la page"}).catch(function(){}); } return; }
+    if(/wa\.me|whatsapp|api\.whatsapp/i.test(href)){ if(une("wa","wa")){ var mw=""; try{ mw=decodeURIComponent((href.split("text=")[1]||"").split("&")[0].replace(/\+/g," ")); }catch(x){} Promise.resolve({p_page:cfg.id,p_canal:"whatsapp",p_message:mw||"Contact WhatsApp depuis la page"}).catch(function(){}); } return; }
     var tx=String(a.textContent||a.value||"").replace(/\s+/g," ").trim();
-    if(cfg.type==="inscription"&&!a.closest("form")&&/r[ée]serv|inscri|rejoin|ma place|particip|je veux/i.test(tx)){ try{ var ki="pg1-inscr-"+cfg.id+"-"+new Date().toISOString().slice(0,10); if(!localStorage.getItem(ki)){ localStorage.setItem(ki,"1"); rpc("contact_clic",{p_page:cfg.id,p_canal:"clic",p_message:"A cliqué sur « "+tx.slice(0,60)+" »"}).catch(function(){}); } }catch(x){} }
+    if(cfg.type==="inscription"&&!a.closest("form")&&/r[ée]serv|inscri|rejoin|ma place|particip|je veux/i.test(tx)){ try{ var ki="pg1-inscr-"+cfg.id+"-"+new Date().toISOString().slice(0,10); if(!localStorage.getItem(ki)){ localStorage.setItem(ki,"1"); Promise.resolve({p_page:cfg.id,p_canal:"clic",p_message:"A cliqué sur « "+tx.slice(0,60)+" »"}).catch(function(){}); } }catch(x){} }
     une("clic","clics");
   },true);
   /* Vidéos : fichiers vidéo et lecteurs YouTube, Vimeo, TikTok, Facebook */
@@ -2949,7 +2982,7 @@ function suiviHTML(cfg){
   document.addEventListener("submit",function(e){
     var f=e.target; if(!f||f.tagName!=="FORM") return; var d=lire(f);
     if(d.nom.length<2&&d.telephone.replace(/\D/g,"").length<6&&!d.email) return;
-    var type=cfg.type==="vente"?"commande":cfg.type==="inscription"?"inscrit":(d.produit||d.quantite?"commande":"inscrit");
+    var type=cfg.type==="vente"?"commande":cfg.type==="inscription"?"inscrit":(d.produit||d.quantite?"commande":"inscrit"); if(type==="commande"&&d.telephone.replace(/\D/g,"").length<8) return;
     var cleD="pg1-env-"+cfg.id+"-"+(d.telephone.replace(/\D/g,"")||d.email||d.nom)+"-"+new Date().toISOString().slice(0,10), deja=false; try{ deja=!!localStorage.getItem(cleD); localStorage.setItem(cleD,"1"); }catch(x){}
     var envoi=deja?Promise.resolve(null):rpc("nouveau_contact2",{p_page:cfg.id,p_type:type,p:d});
     if(!deja){ try{ if(window.pageoPixel) window.pageoPixel(type==="commande"?"Purchase":"Lead",d); }catch(x){} }
@@ -3020,6 +3053,7 @@ async function afficherPagePublique(){
     var tel=f.tel?f.tel.value.replace(/\D/g,""):"", pz=f.pays?f.pays.value:pc, ind=pays(pz)[1];
     var d={nom:(f.nom&&f.nom.value||"").trim(),telephone:tel?ind+" "+tel:"",email:f.email?f.email.value.trim():null,pays:pz,ville:f.ville?f.ville.value.trim():null,zone:f.zone?f.zone.value.trim():null,adresse:f.adresse?f.adresse.value.trim():null,produit:f.produit?f.produit.value:null,quantite:f.quantite?+f.quantite.value||1:null,message:f.message?f.message.value.trim():null};
     if(cmd){ d.montant=f.montant&&+f.montant.value?+f.montant.value:(d.produit&&prixDe(d.produit)?prixDe(d.produit)*(d.quantite||1):null); d.devise=b.c.monnaie||devisePrix(d.produit)||"FCFA"; }
+    if(cmd&&String(d.telephone||"").replace(/\D/g,"").length<8){ if(f.tel){ f.tel.setCustomValidity("Indique ton numéro pour que le vendeur puisse te livrer."); f.tel.reportValidity(); f.tel.oninput=function(){ f.tel.setCustomValidity(""); }; } return; }
     if(!f.checkValidity()){ f.reportValidity(); return; }
     if(!d.nom&&!d.telephone&&!d.email){ return; }
     if(f.closest("[data-fen]")) f.closest(".fen-boite").scrollTop=0;
@@ -4555,7 +4589,9 @@ if(location.hash==="#profil") setTimeout(carteSecuProfil,900);
 /* Une seule fois par personne, par élément et par jour */
 function unJour(cle){ try{ var k="pg1-"+cle+"-"+new Date().toISOString().slice(0,10); if(localStorage.getItem(k)) return false; localStorage.setItem(k,"1"); }catch(e){} return true; }
 /* Départ vers WhatsApp / clic d'inscription : une vraie ligne dans « Commandes » */
-function contactClic(pageId,canal,message){
+function contactClic(pageId,canal,message){ return; /* V33 : un clic n’est plus enregistré comme commande ou inscrit (pas de numéro) */
+}
+function contactClicAncien(pageId,canal,message){
   if(!REEL||!window.Pageo) return;
   try{ fetch(window.Pageo.url+"/rest/v1/rpc/contact_clic",{method:"POST",keepalive:true,headers:{apikey:window.Pageo.cle,"Content-Type":"application/json"},body:JSON.stringify({p_page:pageId,p_canal:canal,p_message:String(message||"").slice(0,500)})}).catch(function(){}); }catch(e){}
 }
@@ -4702,8 +4738,9 @@ document.addEventListener("keydown",function(e){ if(location.hash!=="#editeur"||
   var k=e.key.toLowerCase(); if(k==="z"&&!e.shiftKey){ e.preventDefault(); annuler(); } else if(k==="y"||(k==="z"&&e.shiftKey)){ e.preventDefault(); retablir(); } });
 /* Message « Bloc supprimé — Annuler » */
 function toastAnnuler(txt){ var z=$("toast-annuler"); if(z) z.remove();
-  document.body.insertAdjacentHTML("beforeend",'<div id="toast-annuler" role="status"><span>🗑 '+txt+'</span><button type="button">↶ Annuler</button></div>');
-  z=$("toast-annuler"); z.querySelector("button").onclick=function(){ annuler(); z.remove(); }; clearTimeout(window._taT); window._taT=setTimeout(function(){ if(z) z.remove(); },6000); }
+  /* V34 : message bref et discret ; pour revenir en arrière → bouton ↶ Annuler de la barre (ou Ctrl+Z) */
+  document.body.insertAdjacentHTML("beforeend",'<div id="toast-annuler" role="status">🗑 '+txt+'</div>');
+  z=$("toast-annuler"); clearTimeout(window._taT); window._taT=setTimeout(function(){ if(z) z.remove(); },1500); }
 
 /* =====================================================================
    VERSION 24 — Partie B : sections, rangées (côte à côte), bouton Commander
@@ -4906,7 +4943,7 @@ verifierCode=function(demarrage){
   if(lsG(clePin())||PIN_SYNC) return _vcV29.apply(this,arguments);
   PIN_SYNC=true; var args=arguments, self=this;
   window.Pageo.sb.from("profils").select("pin_hash").eq("id",USER.id).maybeSingle().then(function(r){
-    if(r&&r.data&&r.data.pin_hash){ lsS(clePin(),r.data.pin_hash); lsS(SECU_CLES.actif,String(Date.now())); }
+    if(r&&r.data&&r.data.pin_hash){ lsS(clePin(),r.data.pin_hash); lsS(SECU_CLES.actif,null); /* → « Entre ton code » */ }
     _vcV29.apply(self,args);
   },function(){ _vcV29.apply(self,args); });
 };
@@ -5055,10 +5092,66 @@ function lecteurVideo(u){ u=String(u||"").trim(); var m;
   if((m=u.match(/tiktok\.com\/.*video\/(\d+)/))) return '<iframe src="https://www.tiktok.com/embed/v2/'+m[1]+'" allow="fullscreen" allowfullscreen title="Vidéo"></iframe>';
   return '<video src="'+esc(u)+'" controls playsinline preload="metadata"></video>'; }
 var _monterPubV32=monterPub;
-monterPub=function(el){ var src=(typeof videoPubConnue==="function"?videoPubConnue():REGLAGES.video)||"";
+function idsVideo(u){ var m; u=String(u||"");
+  if((m=u.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/))) return {t:"yt",id:m[1]};
+  if((m=u.match(/vimeo\.com\/(?:video\/)?(\d+)/))) return {t:"vimeo",id:m[1]};
+  return {t:"autre"}; }
+monterPub=function(el){
+  /* Tableau de bord : plus de vidéo publicitaire */
+  if(el.dataset.pub!=="visiteur"){ el.style.display="none"; el.innerHTML=""; return; }
+  var src=(typeof videoPubConnue==="function"?videoPubConnue():REGLAGES.video)||"";
   if(!src||!/^https?:\/\//i.test(src)) return _monterPubV32(el);
-  if(el._src32===src&&el.querySelector(".pub-lecteur")) return; el._src32=src;
-  el.classList.add("pub2"); el.innerHTML='<div class="pub-ecran pub-169 pub-lecteur">'+lecteurVideo(src)+'</div>'; };
+  if(el._src32===src&&el.querySelector(".pub-lecteur")) return; el._src32=src; var vieille=el.querySelector(".pb2"); if(vieille) vieille.remove();
+  var v=idsVideo(src), img=v.t==="yt"?"https://img.youtube.com/vi/"+v.id+"/hqdefault.jpg":"";
+  el.classList.add("pub2");
+  /* L'affiche : une image + un grand bouton qui donne envie de cliquer */
+  el.innerHTML='<div class="pub-ecran pub-169 pub-lecteur"><button type="button" class="pub-affiche"'+(img?' style="background-image:url('+img+')"':'')+' aria-label="Regarder la vidéo de présentation"><span class="pub-voile"></span><span class="pub-play"><span>▶</span></span><span class="pub-invite">Regarde comment Pagéo fait vendre <b>(1 min)</b></span></button></div>';
+  var ecran=el.querySelector(".pub-lecteur");
+  ecran.querySelector(".pub-affiche").onclick=function(){
+    var h;
+    if(v.t==="yt") h='<iframe src="https://www.youtube.com/embed/'+v.id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin='+encodeURIComponent(location.origin)+'" allow="autoplay;encrypted-media;fullscreen;picture-in-picture" allowfullscreen title="Vidéo"></iframe>';
+    else if(v.t==="vimeo") h='<iframe src="https://player.vimeo.com/video/'+v.id+'?autoplay=1&title=0&byline=0&portrait=0" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen title="Vidéo"></iframe>';
+    else h=lecteurVideo(src).replace("<video ","<video autoplay ");
+    ecran.innerHTML=h+'<button type="button" class="pub-fin" hidden><span>↺</span> Revoir la vidéo</button>'; ecran._joue=v.t; ecran._duree=0;
+    barrePub(el,ecran,v); };
+};
+/* La barre sous la vidéo : « Découvre Pagéo » + la ligne qui avance (on peut la faire glisser) + Revoir */
+function envoyerLecteur(ec,cmd,arg){ var f=ec.querySelector("iframe"), vd=ec.querySelector("video");
+  if(vd){ if(cmd==="seek") vd.currentTime=arg; else if(cmd==="play") vd.play(); return; } if(!f||!f.contentWindow) return;
+  if(ec._joue==="yt") f.contentWindow.postMessage(JSON.stringify(cmd==="seek"?{event:"command",func:"seekTo",args:[arg,true]}:{event:"command",func:"playVideo",args:""}),"*");
+  else if(ec._joue==="vimeo") f.contentWindow.postMessage(JSON.stringify(cmd==="seek"?{method:"setCurrentTime",value:arg}:{method:"play"}),"*"); }
+function barrePub(el,ec,v){ var old=el.querySelector(".pb2"); if(old) old.remove();
+  el.insertAdjacentHTML("beforeend",'<div class="pb2"><span class="pb2-t">Découvre Pagéo</span><input type="range" class="pb2-ligne" min="0" max="1000" value="0" aria-label="Avancer ou reculer dans la vidéo"><button type="button" class="pb2-revoir">↺ Revoir</button></div>');
+  var lg=el.querySelector(".pb2-ligne"), maj=function(t,d){ if(d>0){ ec._duree=d; if(!lg._tient){ lg.value=Math.round(t/d*1000); lg.style.setProperty("--p",(t/d*100)+"%"); } } };
+  ec._maj=maj; ec._fin=function(){ var b=ec.querySelector(".pub-fin"); if(b) b.hidden=false; lg.value=1000; lg.style.setProperty("--p","100%"); };
+  lg.addEventListener("input",function(){ lg._tient=true; lg.style.setProperty("--p",(lg.value/10)+"%"); });
+  lg.addEventListener("change",function(){ lg._tient=false; if(ec._duree) envoyerLecteur(ec,"seek",lg.value/1000*ec._duree); var b=ec.querySelector(".pub-fin"); if(b) b.hidden=true; envoyerLecteur(ec,"play"); });
+  var revoir=function(){ var b=ec.querySelector(".pub-fin"); if(b) b.hidden=true; envoyerLecteur(ec,"seek",0); envoyerLecteur(ec,"play"); };
+  el.querySelector(".pb2-revoir").onclick=revoir; ec.querySelector(".pub-fin").onclick=revoir;
+  var f=ec.querySelector("iframe"), vd=ec.querySelector("video");
+  if(vd){ vd.addEventListener("timeupdate",function(){ maj(vd.currentTime,vd.duration); }); vd.addEventListener("ended",ec._fin); return; }
+  if(f) f.addEventListener("load",function(){ try{
+    if(v.t==="yt") f.contentWindow.postMessage('{"event":"listening","id":1,"channel":"widget"}',"*");
+    if(v.t==="vimeo"){ f.contentWindow.postMessage('{"method":"addEventListener","value":"timeupdate"}',"*"); f.contentWindow.postMessage('{"method":"addEventListener","value":"finish"}',"*"); }
+  }catch(e){} }); }
+/* Les lecteurs YouTube et Vimeo nous disent où en est la vidéo */
+window.addEventListener("message",function(e){ if(!/youtube\.com|vimeo\.com/.test(e.origin||"")) return; var d=e.data; try{ if(typeof d==="string") d=JSON.parse(d); }catch(x){ return; } if(!d) return;
+  var ec=null; [].forEach.call(document.querySelectorAll(".pub-lecteur"),function(x){ var f=x.querySelector("iframe"); if(f&&f.contentWindow===e.source) ec=x; }); if(!ec||!ec._maj) return;
+  if(d.event==="infoDelivery"&&d.info){ if(d.info.currentTime!=null) ec._maj(d.info.currentTime,d.info.duration||ec._duree); if(d.info.playerState===0) ec._fin(); }
+  if(d.event==="timeupdate"&&d.data) ec._maj(d.data.seconds,d.data.duration);
+  if(d.event==="finish") ec._fin(); });
+/* La vidéo s'arrête quand on quitte la page ou qu'elle sort de l'écran */
+function pauseVideosPub(){ [].forEach.call(document.querySelectorAll(".pub-lecteur"),function(ec){
+  var f=ec.querySelector("iframe"), vd=ec.querySelector("video");
+  if(vd){ try{ vd.pause(); }catch(e){} return; } if(!f) return;
+  if(ec._joue==="yt") f.contentWindow&&f.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}',"*");
+  else if(ec._joue==="vimeo") f.contentWindow&&f.contentWindow.postMessage('{"method":"pause"}',"*");
+  else { var p=ec.closest("[data-pub]"); if(p){ p._src32=null; monterPub(p); } } }); }
+document.addEventListener("visibilitychange",function(){ if(document.hidden) pauseVideosPub(); });
+window.addEventListener("pagehide",pauseVideosPub);
+window.addEventListener("hashchange",pauseVideosPub);
+if("IntersectionObserver" in window){ var _obsPub=new IntersectionObserver(function(l){ l.forEach(function(x){ if(!x.isIntersecting) pauseVideosPub(); }); },{threshold:0.25});
+  setInterval(function(){ [].forEach.call(document.querySelectorAll(".pub-lecteur"),function(ec){ if(!ec._obs){ ec._obs=1; _obsPub.observe(ec); } }); },1000); }
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
