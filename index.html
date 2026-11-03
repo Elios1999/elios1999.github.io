@@ -1881,7 +1881,7 @@ function avatarHTML(){ return USER.photo?'<img src="'+USER.photo+'" alt="">':esc
 /* ================= Données de démonstration (1 an) ================= */
 var NJ=365;
 var JOURS=(function(){ var r=[],d=new Date(); d.setHours(12,0,0,0); for(var i=NJ-1;i>=0;i--){ var x=new Date(d); x.setDate(d.getDate()-i); r.push(x); } return r; })();
-var METRIQUES=[["visites","Visites"],["vues","Vues de la vidéo"],["clics","Clics sur le bouton"],["cmd","Commandes"],["insc","Inscrits"],["rejoint","Ont rejoint le groupe"],["wa","Clics WhatsApp"],["likes","J’aime"],["dislikes","Je n’aime pas"]];
+var METRIQUES=[["visites","Visites"],["vues","Vues de la vidéo"],["clics","Clics sur le bouton"],["cmd","Commandes"],["insc","Inscrits"],["wa","Clics WhatsApp"],["likes","J’aime"],["dislikes","Je n’aime pas"]];
 var TYPES={astuce:{nom:"Page astuce",court:"Astuce",ic:"💡",coul:"#EAF7FF"},vente:{nom:"Page de vente",court:"Vente",ic:"🛒",coul:"#FFF3E8"},inscription:{nom:"Page d’inscription",court:"Inscription",ic:"👥",coul:"#F1EFF8"}};
 var PAGES=[
   {titre:"Tisane de pissenlit pour le confort urinaire",type:"astuce",slug:"tisane-pissenlit",base:95,jour:300},
@@ -2152,7 +2152,7 @@ function chiffresPeriode(cible,C,tot,a,b){
   var cmd=CONTACTS.filter(function(c){ return c.type==="Commande"&&ps.indexOf(c.page)>=0; });
   var h=chiffre("Visites",nb(tot.visites),"",COULEURS.visites)+chiffre("Vues de la vidéo",nb(tot.vues),"",COULEURS.vues)+chiffre("Clics sur le bouton",nb(tot.clics),"",COULEURS.clics);
   if(aVente) h+=chiffre("Commandes",nb(tot.cmd),cmd.filter(function(c){return c.statut==="Confirmée"||c.statut==="Livrée";}).length+" confirmées · "+cmd.filter(function(c){return c.statut==="Non confirmée";}).length+" à confirmer",COULEURS.cmd);
-  if(aInsc) h+=chiffre("Inscrits",nb(tot.insc),nb(tot.rejoint)+" ont rejoint le groupe",COULEURS.insc);
+  if(aInsc) h+=chiffre("Inscrits",nb(tot.insc),"",COULEURS.insc);
   var av=tot.likes+tot.dislikes; h+=chiffre("Avis",'<span class="avis-v">👍 '+nb(tot.likes)+' <span style="font-size:15px;color:var(--doux)">· 👎 '+nb(tot.dislikes)+'</span></span>',av?Math.round(tot.likes/av*100)+" % d’avis positifs":"",COULEURS.likes);
   $(cible).innerHTML=h;
 }
@@ -2198,7 +2198,7 @@ function detail(i){
   if(!C2) C2=creerCourbe(2,{page:i,fixe:true,per:{t:"tout"},surChange:function(C,tot,a,b){ chiffresPeriode("d-chiffres",C,tot,a,b); }});
   else { C2.page=i; C2.per={t:"tout"}; C2.m="visites"; dessinerCourbe(C2); }
   var lc=CONTACTS.filter(function(c){ return c.page===p; });
-  $("d-contacts").innerHTML=lc.length?lc.map(function(c){ return '<tr><td><b>'+esc(c.nom)+'</b></td><td><span class="drap">'+drapeau(c.pays)+'</span> '+esc(pays(c.pays)[0])+'</td><td>'+(c.type==="Commande"?puceStatut(c.statut):(c.rejoint?'<span class="puce p-ok">A rejoint</span>':'<span class="puce p-in">Inscrit</span>'))+'</td><td class="aide">'+esc(c.quand)+'</td></tr>'; }).join(""):'<tr><td colspan="4" class="aide" style="text-align:center;padding:16px">Pas encore de commande ni d’inscrit sur cette page.</td></tr>';
+  $("d-contacts").innerHTML=lc.length?lc.map(function(c){ return '<tr><td><b>'+esc(c.nom)+'</b></td><td><span class="drap">'+drapeau(c.pays)+'</span> '+esc(pays(c.pays)[0])+'</td><td>'+(c.type==="Commande"?puceStatut(c.statut):'<span class="puce p-in">Inscrit</span>')+'</td><td class="aide">'+esc(c.quand)+'</td></tr>'; }).join(""):'<tr><td colspan="4" class="aide" style="text-align:center;padding:16px">Pas encore de commande ni d’inscrit sur cette page.</td></tr>';
   var src=p.sources&&Object.keys(p.sources).length?Object.keys(p.sources).map(function(k){ return [{facebook:"Facebook",tiktok:"TikTok",whatsapp:"WhatsApp",instagram:"Instagram",direct:"Lien direct",autre:"Autres sites"}[k]||k,p.sources[k]]; }).sort(function(a,b){ return b[1]-a[1]; }):[["Facebook",54+i*2],["TikTok",22],["WhatsApp",15],["Lien direct",9]], t=somme(src.map(function(x){return x[1];}));
   $("d-sources").innerHTML=totalP(p,"visites")?src.map(function(x){ var pc=Math.round(x[1]/t*100); return '<div style="display:grid;grid-template-columns:96px 1fr 44px;gap:10px;align-items:center;margin-bottom:10px;font-size:14px"><span>'+x[0]+'</span><div style="height:8px;border-radius:999px;background:var(--s2);overflow:hidden"><i style="display:block;height:100%;width:'+pc+'%;background:linear-gradient(90deg,#38BDF8,#0EA5E9);border-radius:999px"></i></div><b style="text-align:right">'+pc+' %</b></div>'; }).join(""):'<p class="aide">Pas encore de visites.</p>';
 }
@@ -3015,9 +3015,10 @@ function suiviHTML(cfg){
     var f=e.target; if(!f||f.tagName!=="FORM") return; var d=lire(f);
     if(d.nom.length<2&&d.telephone.replace(/\D/g,"").length<6&&!d.email) return;
     var type=cfg.type==="vente"?"commande":cfg.type==="inscription"?"inscrit":(d.produit||d.quantite?"commande":"inscrit"); if(type==="commande"&&d.telephone.replace(/\D/g,"").length<8) return;
-    var cleD="pg1-env-"+cfg.id+"-"+(d.telephone.replace(/\D/g,"")||d.email||d.nom)+"-"+new Date().toISOString().slice(0,10), deja=false; try{ deja=!!localStorage.getItem(cleD); localStorage.setItem(cleD,"1"); }catch(x){}
+    var cleD="pg1-env-"+cfg.id+"-"+(d.telephone.replace(/\D/g,"")||d.email||d.nom)+(type==="commande"?"-"+new Date().toISOString().slice(0,10):""), deja=false; try{ deja=!!localStorage.getItem(cleD); localStorage.setItem(cleD,"1"); }catch(x){}
     var envoi=deja?Promise.resolve(null):rpc("nouveau_contact2",{p_page:cfg.id,p_type:type,p:d});
     if(!deja){ try{ if(window.pageoPixel) window.pageoPixel(type==="commande"?"Purchase":"Lead",d); }catch(x){} }
+    f._pageoDeja=deja; f._pageoType=type; f._pageoTel=d.telephone;
     f.setAttribute("data-pageo-envoye","1"); f._pageoEnvoi=envoi;
   },true);
   /* Après le code de la page : si personne ne gère l'envoi, Pagéo affiche le message de remerciement */
@@ -3027,7 +3028,12 @@ function suiviHTML(cfg){
     if(/^(https?:|mailto:)/i.test(act)&&act.indexOf(location.host)<0) return; /* formulaire vers un autre site : on le laisse partir */
     e.preventDefault();
     var bt=f.querySelector("[type=submit],button"); if(bt){ bt.disabled=true; }
-    (f._pageoEnvoi||Promise.resolve()).then(function(){ var r=f.getAttribute("data-pageo-redirection")||cfg.red; f.innerHTML='<p style="text-align:center;font-weight:700;padding:14px;font-family:system-ui,sans-serif">✅ Merci, c’est bien reçu !</p>'; if(r) setTimeout(function(){ location.href=r; },900); },function(){ if(bt) bt.disabled=false; alert("Petit souci de connexion, réessaie."); });
+    (f._pageoEnvoi||Promise.resolve()).then(function(){ var r=f.getAttribute("data-pageo-redirection")||cfg.red; var cmdH=f._pageoType==="commande", grp=/chat\.whatsapp|t\.me|telegram|facebook\.com\/groups/i.test(r||""), e2=function(x){ return String(x||"").replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
+      var tt=cmdH?"Merci ! Ta commande est bien reçue.":(f._pageoDeja?"Tu es déjà inscrit(e) !":"Merci pour ton inscription !"), ic=cmdH?"✅":(f._pageoDeja?"😊":"🎉");
+      var st=cmdH?("Nous allons t’appeler"+(f._pageoTel?" au <b>"+e2(f._pageoTel)+"</b>":"")+" pour la livraison."):(f._pageoDeja?"Pas besoin de recommencer, ton inscription est déjà enregistrée.":"Ton inscription est bien enregistrée.");
+      f.innerHTML='<div style="text-align:center;padding:22px 16px;font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#15112E;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);max-width:440px;margin:10px auto"><div style="font-size:46px;line-height:1">'+ic+'</div><p style="margin:10px 0 6px;font-size:20px;font-weight:800">'+tt+'</p><p style="margin:0 0 '+(r?"14px":"0")+';font-size:15px;line-height:1.5;color:#475569">'+st+'</p>'+
+        (r?'<p style="margin:0 0 10px;font-size:14px;color:#64748B">'+(grp?"On t’emmène vers le groupe…":"On t’emmène à la suite…")+'</p><a href="'+e2(r)+'" style="display:inline-block;padding:13px 22px;border-radius:12px;background:'+(grp?"#22C55E":"#5B2BE0")+';color:#fff;font-weight:800;text-decoration:none">'+(grp?"Rejoindre le groupe":"Continuer ➜")+'</a>':"")+'</div>';
+      if(r) setTimeout(function(){ location.href=r; },1800); },function(){ if(bt) bt.disabled=false; alert("Petit souci de connexion, réessaie."); });
   });
   if(cfg.badge&&document.body){ var bz=document.createElement("div"); bz.innerHTML=cfg.badge; document.body.appendChild(bz); }
   /* Boutons J'aime (option) */
@@ -3091,13 +3097,13 @@ async function afficherPagePublique(){
     if(f.closest("[data-fen]")) f.closest(".fen-boite").scrollTop=0;
     P.compter(page.id,"clics");
     var bt=f.querySelector("button"); if(bt){ bt.disabled=true; bt.textContent="Envoi…"; }
-    var cleD="pg1-env-"+page.id+"-"+((d.telephone||"").replace(/\D/g,"")||d.email||d.nom)+"-"+new Date().toISOString().slice(0,10), deja=false; try{ deja=!!localStorage.getItem(cleD); }catch(x){}
+    var cleD="pg1-env-"+page.id+"-"+((d.telephone||"").replace(/\D/g,"")||d.email||d.nom)+(cmd?"-"+new Date().toISOString().slice(0,10):""), deja=false; try{ deja=!!localStorage.getItem(cleD); }catch(x){}
     var r=deja?{error:null}:await P.envoyerFormulaire2(page.id,cmd?"commande":"inscrit",d);
     if(!r.error&&!deja){ try{ localStorage.setItem(cleD,"1"); }catch(x){} try{ if(window.pageoPixel) window.pageoPixel(cmd?"Purchase":"Lead",d); }catch(x){} }
     if(r.error){ if(/LIMITE_MOIS/.test(r.error.message)){ f.outerHTML='<div style="text-align:center;padding:10px"><p style="font-weight:700;margin:0 0 10px">Les commandes en ligne sont momentanément fermées sur cette page.</p>'+(b.c.numero?'<a class="bt" style="background:#22C55E;color:#fff" href="https://wa.me/'+String(b.c.numero).replace(/\D/g,"")+'">💬 Contacter le vendeur sur WhatsApp</a>':'')+'</div>'; return; } if(bt){ bt.disabled=false; bt.textContent=b.c.bouton||"Commander"; } alert("Erreur, réessaie : "+r.error.message); return; }
     var red=b.c.redirection&&!/…$/.test(b.c.redirection)?b.c.redirection:"";
     if(!cmd){ var grp=/chat\.whatsapp|t\.me|telegram|facebook\.com\/groups/i.test(b.c.redirection||""), redI=/^https?:\/\//i.test(b.c.redirection||"")?b.c.redirection:"";
-      f.outerHTML='<div style="text-align:center;padding:8px 0"><div style="font-size:40px">🎉</div><p style="margin:6px 0 10px;font-weight:700">'+esc(b.c.merci)+'</p>'+(redI?'<p class="cmd-ok-s" data-compte>'+(grp?'On t’emmène vers le groupe…':'On t’emmène à la suite…')+'</p><a class="bt" data-rejoindre href="'+esc(redI)+'" style="background:'+b.s.accent+';color:#fff">'+(grp?'Rejoindre le groupe':'Continuer ➜')+'</a>':'')+'</div>';
+      f.outerHTML='<div style="text-align:center;padding:8px 0"><div style="font-size:40px">'+(deja?"😊":"🎉")+'</div><p style="margin:6px 0 10px;font-weight:700">'+(deja?"Tu es déjà inscrit(e) ! Pas besoin de recommencer.":esc(b.c.merci))+'</p>'+(redI?'<p class="cmd-ok-s" data-compte>'+(grp?'On t’emmène vers le groupe…':'On t’emmène à la suite…')+'</p><a class="bt" data-rejoindre href="'+esc(redI)+'" style="background:'+b.s.accent+';color:#fff">'+(grp?'Rejoindre le groupe':'Continuer ➜')+'</a>':'')+'</div>';
       /* le lien s'ouvre tout seul (le bouton reste là en secours) */
       if(redI) setTimeout(function(){ location.href=redI; },2000); }
     else { /* Commande : enregistrée, belle confirmation SANS quitter la page (pas de message « application externe » de Facebook) */
@@ -3824,7 +3830,7 @@ chiffresPeriode=function(cible,C,tot,a,b){
   function carte(lib,k,val,sous){ var coul=COULEURS[k]; return '<div class="chiffre ch2" style="--cc:'+coul+'"><span>'+lib+'</span><div class="ch2-v"><b>'+val+'</b>'+puceEcart(ecart(C,k,a,b))+'</div>'+(sous?'<small>'+sous+'</small>':'')+miniCourbe(serieR(C,k,a,b),coul)+'</div>'; }
   var h=carte("Visites","visites",nb(tot.visites))+carte("Vues de la vidéo","vues",nb(tot.vues))+carte("Clics sur le bouton","clics",nb(tot.clics));
   if(aVente) h+=carte("Commandes","cmd",nb(tot.cmd),cmd.filter(function(c){return c.statut==="Confirmée"||c.statut==="Livrée";}).length+" confirmées · "+cmd.filter(function(c){return c.statut==="Non confirmée";}).length+" à confirmer");
-  if(aInsc) h+=carte("Inscrits","insc",nb(tot.insc),nb(tot.rejoint)+" ont rejoint le groupe");
+  if(aInsc) h+=carte("Inscrits","insc",nb(tot.insc),"");
   var av=tot.likes+tot.dislikes;
   h+=carte("Avis","likes",'<span class="avis-v">👍 '+nb(tot.likes)+'<span class="avis-non">👎 '+nb(tot.dislikes)+'</span></span>',av?Math.round(tot.likes/av*100)+" % d’avis positifs":"");
   $(cible).innerHTML=h;
