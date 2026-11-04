@@ -1327,6 +1327,29 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 /* ====== Version 39 : pas de zoom automatique quand on remplit une case sur téléphone ====== */
 @media (max-width:820px){ input,select,textarea{font-size:16px!important} }
 .seq-st{font-size:12.5px;font-weight:700}
+/* ====== Version 41 : éditeur (barre au-dessus du bloc, écriture directe, colonnes) ====== */
+.rangee[style*="--cols"]{grid-template-columns:var(--cols)}
+@container (max-width:620px){.rangee:not(.rangee-tel){grid-template-columns:1fr!important}.rangee.rangee-tel{grid-template-columns:var(--cols)!important;gap:8px}}
+@media (max-width:620px){.rangee:not(.rangee-tel){grid-template-columns:1fr!important}.rangee.rangee-tel{grid-template-columns:var(--cols)!important;gap:8px}}
+.cadre{position:relative}
+#edit-barre{position:absolute;left:8px;right:8px;z-index:30;background:#15112E;color:#fff;border-radius:14px;padding:6px;box-shadow:0 10px 26px rgba(21,17,46,.35);display:flex;flex-direction:column;gap:4px;font:600 13px/1 system-ui,-apple-system,sans-serif}
+#edit-barre .eb-l{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+#edit-barre button,#edit-barre select,#edit-barre label{background:rgba(255,255,255,.1);color:#fff;border:0;border-radius:8px;padding:7px 9px;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+#edit-barre button.on{background:#7C3AED}
+#edit-barre button:disabled{opacity:.4;cursor:default}
+#edit-barre select option{color:#15112E}
+#edit-barre label input{width:22px;height:18px;border:0;padding:0;background:none}
+#edit-barre i{width:1px;align-self:stretch;background:rgba(255,255,255,.2);margin:0 2px}
+.riche-direct{outline:2px dashed #A78BFA;outline-offset:4px;border-radius:6px;cursor:text;min-height:1.4em}
+.riche-direct:focus{outline-color:#7C3AED}
+/* ====== Version 42 : rangées prêtes, poignée de la bannière ====== */
+.rg-choix{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.rg-carte{display:flex;flex-direction:column;gap:8px;align-items:stretch;border:1.5px solid #DDD6FE;background:#fff;border-radius:14px;padding:10px;cursor:pointer;font:inherit;text-align:left}
+.rg-carte:hover{border-color:#7C3AED;background:#FAF8FF}
+.rg-cols{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:4px;height:34px}
+.rg-cols i{background:#EDE9FE;border-radius:6px}
+.hero-poignee{position:absolute;right:-14px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:#7C3AED;color:#fff;font-size:13px;display:grid;place-items:center;cursor:ew-resize;box-shadow:0 2px 8px rgba(0,0,0,.4);text-shadow:none;font-weight:800}
+.hero-el{box-sizing:border-box}
 
 </style>
 </head>
@@ -5446,6 +5469,161 @@ ecranMessage=function(onglet){ var o=onglet==="cmd"?"cmd":"ins";
     fermerModale(); commandes(); toast("Messages enregistrés ✅"); };
 };
 ecranMsgCmd=function(){ ecranMessage("cmd"); };
+
+/* =====================================================================
+   VERSION 41 — Éditeur : aperçu stable, écriture directe sur l'aperçu,
+   colonnes faciles (à côté, colonne à droite, largeurs, sur téléphone)
+   ===================================================================== */
+function posDans(el,c){ return el.getBoundingClientRect().top-c.getBoundingClientRect().top+c.scrollTop; }
+/* ---------- 1. Aperçu stable : le bloc modifié reste à la même place à l'écran ---------- */
+function zoneDefil(){ var a=$("apercu"); for(var p=a&&a.parentElement;p&&p!==document.body;p=p.parentElement){ var o=getComputedStyle(p).overflowY; if(/(auto|scroll)/.test(o)&&p.scrollHeight>p.clientHeight+2) return p; } return document.scrollingElement||document.documentElement; }
+function posZ(el,z){ var r=el.getBoundingClientRect().top; return (z===document.scrollingElement||z===document.documentElement)?r+window.scrollY:r-z.getBoundingClientRect().top+z.scrollTop; }
+var _raV41=rendreApercu;
+rendreApercu=function(){ var z=zoneDefil(), el=ED.sel?document.querySelector('#apercu [data-b="'+ED.sel+'"]'):null, ecart=el?posZ(el,z)-z.scrollTop:null, haut=z.scrollTop;
+  var r=_raV41.apply(this,arguments);
+  var el2=ED.sel?document.querySelector('#apercu [data-b="'+ED.sel+'"]'):null; z.scrollTop=(el2&&ecart!==null)?Math.max(0,posZ(el2,z)-ecart):haut;
+  preparerEcritureDirecte(); placerBarre(); return r; };
+/* On ne fait défiler que si le bloc choisi est caché, et sans glisser */
+voirBloc=function(){ setTimeout(function(){ var el=document.querySelector('#apercu [data-b="'+ED.sel+'"]'); if(!el) return; var r=el.getBoundingClientRect();
+  if(r.top<70||r.top>innerHeight-80){ var z=zoneDefil(); z.scrollTop=Math.max(0,posZ(el,z)-90); } placerBarre(); },40); };
+/* Toucher le bloc déjà choisi ne redessine rien (on peut écrire tranquillement) */
+document.addEventListener("click",function(e){ var t=e.target; if(!t.closest||!t.closest("#apercu")) return; var p=t.closest("[data-b]");
+  if(p&&p.dataset.b===ED.sel&&(t.closest("[contenteditable=true]")||!t.closest("input,select,button,summary,a"))){ e.stopImmediatePropagation(); placerBarre(); } },true);
+
+/* ---------- 2. Écrire directement sur l'aperçu (blocs Texte) ---------- */
+function preparerEcritureDirecte(){ var b=ED.blocs.filter(function(x){ return x.id===ED.sel; })[0]; if(!b||b.t!=="texte") return;
+  var el=document.querySelector('#apercu [data-b="'+b.id+'"] .riche'); if(!el||el.isContentEditable) return;
+  if(!b.c.riche) b.c.riche=nettoyerRiche(el.innerHTML);
+  el.setAttribute("contenteditable","true"); el.setAttribute("spellcheck","true"); el.classList.add("riche-direct");
+  el.addEventListener("input",function(){ b.c.riche=nettoyerRiche(el.innerHTML); var z=document.querySelector("#reglages [data-riche]"); if(z&&document.activeElement!==z) z.innerHTML=b.c.riche; ED._modifie=true; });
+  el.addEventListener("keydown",function(ev){ if(ev.key==="Enter"&&ev.shiftKey){ ev.preventDefault(); document.execCommand("insertLineBreak"); } }); }
+/* Ce qu'on écrit dans le panneau de réglages ne redessine plus tout l'aperçu à chaque lettre */
+sauverRiche=function(z){ var b=blocTexteSel(); if(!b) return; b.c.riche=nettoyerRiche(z.innerHTML); var el=document.querySelector('#apercu [data-b="'+b.id+'"] .riche'); if(el&&document.activeElement!==el) el.innerHTML=b.c.riche; };
+
+/* ---------- 3. La barre au-dessus du bloc choisi ---------- */
+function blocSel(){ return ED.blocs.filter(function(x){ return x.id===ED.sel; })[0]; }
+function placerBarre(){ var c=$("cadre"), b=blocSel(), z=$("edit-barre"); if(!c||!b){ if(z) z.remove(); return; }
+  var el=document.querySelector('#apercu [data-b="'+b.id+'"]'); if(!el){ if(z) z.remove(); return; }
+  if(!z){ z=document.createElement("div"); z.id="edit-barre"; c.appendChild(z); }
+  var i=ED.blocs.indexOf(b), s=b.s||{}, suiv=ED.blocs[i+1], section=ED.blocs.slice(0,i).some(function(x){ return x.t==="section"; });
+  var txt=b.t==="texte"?'<div class="eb-l">'+
+      '<button data-eb="formatBlock" data-ea="h2" title="Grand titre">T1</button><button data-eb="formatBlock" data-ea="h3" title="Sous-titre">T2</button><button data-eb="formatBlock" data-ea="h4" title="Petit titre">T3</button><button data-eb="formatBlock" data-ea="p" title="Texte normal">¶</button><i></i>'+
+      '<button data-eb="bold" title="Gras"><b>G</b></button><button data-eb="italic" title="Italique"><i>I</i></button><button data-eb="underline" title="Souligné"><u>S</u></button><i></i>'+
+      '<label title="Couleur des mots choisis">🎨<input type="color" data-ec="foreColor" value="#E11D48"></label><label title="Surligner">🖍<input type="color" data-ec="hiliteColor" value="#FDE68A"></label>'+
+      '<select data-es title="Taille des mots choisis"><option value="">Taille</option><option value="2">Petite</option><option value="3">Normale</option><option value="5">Grande</option><option value="6">Très grande</option><option value="7">Énorme</option></select><i></i>'+
+      '<button data-eb="justifyLeft" title="À gauche">⬅</button><button data-eb="justifyCenter" title="Centrer">⬌</button><button data-eb="justifyRight" title="À droite">➡</button><button data-eb="insertLineBreak" title="Aller à la ligne">↵</button><button data-eb="removeFormat" title="Enlever la mise en forme">⌫</button></div>':"";
+  var parts={"1":"Étroite","1.5":"Moyenne","2":"Large"}, part=String(s.colFr||"1");
+  z.innerHTML=txt+'<div class="eb-l">'+
+    '<button data-eo="cote" class="'+(s.cote?"on":"")+'" title="Placer ce bloc et le suivant sur la même rangée"'+(suiv?"":" disabled")+'>⬌ À côté du suivant</button>'+
+    '<button data-eo="col" title="Ajouter une colonne à droite de ce bloc">➕ Colonne à droite</button>'+
+    '<select data-eo="fr" title="Largeur de ce bloc dans la rangée">'+Object.keys(parts).map(function(k){ return '<option value="'+k+'"'+(k===part?" selected":"")+'>↔ '+parts[k]+'</option>'; }).join("")+'</select>'+
+    '<button data-eo="tel" class="'+(s.colTel?"on":"")+'" title="Garder la rangée côte à côte sur téléphone">📱 Côte à côte sur téléphone</button>'+
+    (section&&b.t!=="section"?'<button data-eo="dans" class="'+(s.dans?"on":"")+'" title="Mettre ce bloc dans la section au-dessus">📦 Dans la section</button>':"")+'</div>';
+  var pe=posDans(el,c), top=pe-z.offsetHeight-6; z.style.top=(top<4?pe+el.offsetHeight+6:top)+"px"; }
+document.addEventListener("mousedown",function(e){ if(e.target.closest&&e.target.closest("#edit-barre button")) e.preventDefault(); },true);
+document.addEventListener("click",function(e){ var t=e.target; if(!t.closest) return; var bt=t.closest("#edit-barre [data-eb]"), bo=t.closest("#edit-barre [data-eo]"); if(!bt&&!bo) return; e.preventDefault(); e.stopPropagation();
+  var b=blocSel(); if(!b) return;
+  if(bt){ var el=document.querySelector('#apercu [data-b="'+b.id+'"] .riche'); if(!el) return; el.focus(); try{ document.execCommand("styleWithCSS",false,false); }catch(x){}
+    document.execCommand(bt.dataset.eb,false,bt.dataset.ea?"<"+bt.dataset.ea+">":null); b.c.riche=nettoyerRiche(el.innerHTML); return; }
+  var o=bo.dataset.eo, i=ED.blocs.indexOf(b); b.s=b.s||{};
+  if(o==="cote"){ b.s.cote=!b.s.cote; }
+  else if(o==="tel"){ b.s.colTel=!b.s.colTel; }
+  else if(o==="dans"){ b.s.dans=!b.s.dans; }
+  else if(o==="col"){ var n=nouveauBloc("texte"); n.c.riche="<p>Nouvelle colonne : écris ici.</p>"; if(b.s.dans){ n.s.dans=true; } b.s.cote=true; ED.blocs.splice(i+1,0,n); ED.sel=n.id; }
+  rendreEditeur(); },true);
+document.addEventListener("change",function(e){ var t=e.target; if(!t.closest||!t.closest("#edit-barre")) return; var b=blocSel(); if(!b) return;
+  if(t.matches("[data-eo=fr]")){ b.s.colFr=t.value; rendreEditeur(); return; }
+  var el=document.querySelector('#apercu [data-b="'+b.id+'"] .riche'); if(!el) return; el.focus();
+  if(t.matches("[data-ec]")){ try{ document.execCommand("styleWithCSS",false,t.dataset.ec==="hiliteColor"); }catch(x){} document.execCommand(t.dataset.ec,false,t.value); }
+  if(t.matches("[data-es]")&&t.value){ document.execCommand("fontSize",false,t.value); t.value=""; }
+  b.c.riche=nettoyerRiche(el.innerHTML); },true);
+
+/* ---------- 4. Les rangées : largeur de chaque colonne, et côte à côte sur téléphone ---------- */
+var _osV41=organiserSections;
+organiserSections=function(conteneur,blocs){ var r=_osV41.apply(this,arguments);
+  [].forEach.call(conteneur.querySelectorAll(".rangee"),function(rg){ var frs=[], tel=false;
+    [].forEach.call(rg.children,function(ch){ var b=ch.dataset&&ch.dataset.b?blocs.filter(function(x){ return x.id===ch.dataset.b; })[0]:null; var s=(b&&b.s)||{}; frs.push((parseFloat(s.colFr)||1)+"fr"); if(s.colTel) tel=true; });
+    rg.style.setProperty("--cols",frs.map(function(f){ return "minmax(0,"+f+")"; }).join(" ")); rg.classList.toggle("rangee-tel",tel); });
+  return r; };
+
+/* =====================================================================
+   VERSION 42 — Sections : ajouter une rangée de 1, 2 ou 3 colonnes d'un coup ;
+   fenêtre de commande sans « Commander » en double ; bannière pro : textes réglables
+   (largeur à tirer, alignement, couleur, taille, gras)
+   ===================================================================== */
+/* ---------- 1. Section : « Ajouter une rangée » avec 1, 2 ou 3 colonnes ---------- */
+var RANGEES_PRETES=[
+  {nom:"1 élément au choix",ic:"➕",t:null},
+  {nom:"Texte seul",ic:"📝",t:["texte"]},
+  {nom:"Image + texte",ic:"🖼️📝",t:["image","texte"]},
+  {nom:"Image + prix",ic:"🖼️💰",t:["image","prix"]},
+  {nom:"2 colonnes de texte",ic:"📝📝",t:["texte","texte"]},
+  {nom:"3 colonnes de texte",ic:"📝📝📝",t:["texte","texte","texte"]},
+  {nom:"2 images",ic:"🖼️🖼️",t:["image","image"]}];
+function finDeSection(iSec){ var j=iSec+1; while(j<ED.blocs.length&&ED.blocs[j].s&&ED.blocs[j].s.dans&&ED.blocs[j].t!=="section") j++; return j; }
+function choisirRangee(sec){ var iSec=ED.blocs.indexOf(sec); if(iSec<0) return;
+  ouvrirModale('<div><h2 style="font-size:19px;margin:0 0 6px">➕ Ajouter dans la section</h2><p class="aide" style="margin:0 0 12px">Choisis la rangée à ajouter. Tu pourras ensuite modifier chaque élément.</p><div class="rg-choix">'+
+    RANGEES_PRETES.map(function(r,i){ var n=r.t?r.t.length:1; return '<button type="button" class="rg-carte" data-rgp="'+i+'"><span class="rg-cols" style="--n:'+n+'">'+Array(n+1).join("<i></i>")+'</span><b>'+r.ic+' '+r.nom+'</b></button>'; }).join("")+'</div></div>');
+  [].forEach.call(document.querySelectorAll("[data-rgp]"),function(bt){ bt.onclick=function(){ var r=RANGEES_PRETES[+bt.dataset.rgp]; fermerModale();
+    if(!r.t){ ED.sel=sec.id; ED._ajoutDansSection=sec.id; var p=$("tuiles")||$("palette"); if(p) p.scrollIntoView({behavior:"smooth",block:"center"}); toast("Choisis l’élément : il ira dans la section."); return; }
+    var pos=finDeSection(iSec), nv=r.t.map(function(t,k){ var b=nouveauBloc(t==="prix"?"texte":t); b.s=b.s||{}; b.s.dans=true; if(k<r.t.length-1) b.s.cote=true; if(r.nom==="Image + prix"||r.nom==="2 images") b.s.colTel=true;
+      if(t==="prix") b.c.riche="<h3>Nom du produit</h3><p><span style=\"font-size:1.4em\"><b>12 500 FCFA</b></span></p><p>Livraison rapide · Paiement à la livraison</p>";
+      else if(t==="texte"&&r.t.length>1) b.c.riche="<h3>Titre</h3><p>Écris ici ton texte.</p>"; return b; });
+    Array.prototype.splice.apply(ED.blocs,[pos,0].concat(nv)); ED.sel=nv[0].id; rendreEditeur(); voirBloc(); }; });
+}
+document.addEventListener("click",function(e){ var b=e.target.closest&&e.target.closest("[data-sec-ajout]"); if(!b) return; e.preventDefault(); e.stopImmediatePropagation(); var s=blocSel(); if(s&&s.t==="section") choisirRangee(s); },true);
+/* La barre au-dessus d'une section propose aussi « Ajouter une rangée » */
+var _pbV42=placerBarre;
+placerBarre=function(){ _pbV42.apply(this,arguments); var b=blocSel(), z=$("edit-barre"); if(!b||!z) return;
+  var l=z.querySelector(".eb-l:last-child"); if(!l) return;
+  if(b.t==="section"&&!l.querySelector("[data-eo-rg]")) l.insertAdjacentHTML("afterbegin",'<button data-eo-rg title="Ajouter une rangée de 1, 2 ou 3 colonnes dans cette section">➕ Ajouter une rangée</button>');
+  var i=ED.blocs.indexOf(b), sec=null; for(var k=i-1;k>=0;k--){ if(ED.blocs[k].t==="section"){ sec=ED.blocs[k]; break; } if(!(ED.blocs[k].s&&ED.blocs[k].s.dans)) break; }
+  if(b.s&&b.s.dans&&sec&&!l.querySelector("[data-eo-rg2]")) l.insertAdjacentHTML("beforeend",'<button data-eo-rg2 title="Ajouter une autre rangée dans cette section">➕ Rangée en dessous</button>'); };
+document.addEventListener("click",function(e){ var t=e.target; if(!t.closest) return; var a=t.closest("#edit-barre [data-eo-rg]"), c=t.closest("#edit-barre [data-eo-rg2]"); if(!a&&!c) return; e.preventDefault(); e.stopImmediatePropagation();
+  var b=blocSel(); if(a&&b) return choisirRangee(b); var i=ED.blocs.indexOf(b); for(var k=i-1;k>=0;k--){ if(ED.blocs[k].t==="section") return choisirRangee(ED.blocs[k]); } },true);
+/* « 1 élément au choix » : l'élément ajouté va dans la section */
+var _nbV42=nouveauBloc;
+nouveauBloc=function(t,theme){ var b=_nbV42.apply(this,arguments); if(ED._ajoutDansSection&&t!=="section"){ b.s=b.s||{}; b.s.dans=true; ED._ajoutDansSection=null; } return b; };
+
+/* ---------- 2. Fenêtre du formulaire : pas de « Commander » en double ---------- */
+var _rbV42=rendreBloc;
+rendreBloc=function(b){ var h=_rbV42.apply(this,arguments);
+  if((b.t==="commande"||b.t==="inscription")&&b.c&&b.c.affichage==="fenetre"){ var i=h.indexOf('class="fen-boite"'); if(i>0){ var avant=h.slice(0,i), apres=h.slice(i);
+      apres=apres.replace(/<h3 class="tt"[^>]*>([\s\S]*?)<\/h3>/,function(m0,txt){ var t=String(txt).replace(/<[^>]+>/g,"").toLowerCase(); return /command|inscri|réserv|reserv|je veux|achet/.test(t)?"":m0; }); h=avant+apres; } }
+  return h; };
+
+/* ---------- 3. Bannière pro : textes réglables ---------- */
+DEFS.hero.ch=DEFS.hero.ch.concat([
+  ["titreLarg","Largeur du titre (%) — plus petit = le texte descend ligne par ligne","nombre"],
+  ["titreAlign","Alignement du titre","choix:center=Centré|left=À gauche|right=À droite"],
+  ["titreTaille","Taille du titre (px)","nombre"],
+  ["titreCoul","Couleur du titre","couleur"],
+  ["titreGras","Épaisseur du titre","choix:800=Très gras|600=Gras|400=Normal"],
+  ["sousLarg","Largeur du petit texte (%) — 0 = automatique","nombre"],
+  ["sousCoul","Couleur du petit texte","couleur"],
+  ["sousFond","Fond du petit texte","choix:pastille=Pastille blanche|aucun=Sans fond"]]);
+var _rhV42=RENDUS.hero;
+RENDUS.hero=function(b){ var h=_rhV42.apply(this,arguments), c=b.c;
+  var tl=Math.max(15,Math.min(100,+c.titreLarg||88)), ta=c.titreAlign||"center", tt=+c.titreTaille||0, tc=c.titreCoul||"", tg=c.titreGras||"800";
+  var stT="width:"+tl+"%;text-align:"+ta+";font-weight:"+tg+";white-space:normal;"+(tt?"font-size:"+Math.max(10,Math.min(90,tt))+"px;":"")+(tc?"color:"+tc+";":"");
+  h=h.replace(/(<div class="hero-el hero-titre" data-el="titre" style=")/,"$1"+stT);
+  var sl=+c.sousLarg||0, sc=c.sousCoul||"", sf=c.sousFond||"pastille";
+  var stS=(sl?"width:"+Math.max(10,Math.min(100,sl))+"%;white-space:normal;text-align:"+ta+";":"")+(sc?"color:"+sc+";":"")+(sf==="aucun"?"background:none;box-shadow:none;padding:0;text-shadow:0 2px 10px rgba(0,0,0,.55);":"");
+  h=h.replace(/(<div class="hero-el hero-sous" data-el="sous" style=")/,"$1"+stS);
+  return h; };
+/* Dans l'éditeur : une poignée ↔ pour élargir ou resserrer le titre en tirant */
+function poigneesHero(){ var b=blocSel(); if(!b||b.t!=="hero") return; var bloc=document.querySelector('#apercu [data-b="'+b.id+'"]'); if(!bloc) return;
+  [["titre","titreLarg",88],["sous","sousLarg",0]].forEach(function(x){ var el=bloc.querySelector(".hero-"+x[0]); if(!el||el.querySelector(".hero-poignee")) return;
+    var p=document.createElement("span"); p.className="hero-poignee"; p.title="Tire pour élargir ou resserrer le texte"; p.textContent="↔"; el.appendChild(p);
+    p.addEventListener("pointerdown",function(ev){ ev.preventDefault(); ev.stopPropagation(); var hero=bloc.querySelector(".hero"), W=hero.getBoundingClientRect().width, x0=ev.clientX, w0=el.getBoundingClientRect().width;
+      var bouge=function(m){ var w=Math.max(0.12*W,Math.min(W,w0+(m.clientX-x0)*2)); var pc=Math.round(w/W*100); el.style.width=pc+"%"; el.style.whiteSpace="normal"; b.c[x[1]]=String(pc); };
+      var fin=function(){ document.removeEventListener("pointermove",bouge); document.removeEventListener("pointerup",fin); rendreEditeur(); };
+      document.addEventListener("pointermove",bouge); document.addEventListener("pointerup",fin); }); }); }
+var _raV42=rendreApercu; rendreApercu=function(){ var r=_raV42.apply(this,arguments); poigneesHero(); return r; };
+/* Champ « couleur » dans les réglages du contenu */
+var _chV42=ch;
+ch=function(id,lab,type,val,b){ if(type!=="couleur") return _chV42.apply(this,arguments);
+  return '<div class="champ"><label for="'+id+'">'+lab+'</label><div style="display:flex;gap:8px;align-items:center"><input id="'+id+'" data-c type="color" value="'+esc(/^#[0-9a-f]{6}$/i.test(val||"")?val:"#ffffff")+'" style="width:56px;height:38px;padding:2px"><small class="aide">'+(val?"":"(couleur d’origine)")+'</small></div></div>'; };
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
