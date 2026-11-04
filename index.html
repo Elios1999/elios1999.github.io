@@ -3015,6 +3015,7 @@ function suiviHTML(cfg){
   }
   document.addEventListener("submit",function(e){
     var f=e.target; if(!f||f.tagName!=="FORM") return; var d=lire(f);
+    if(f._pgPays){ d.pays=f._pgPays.code; var tt0=String(d.telephone||"").trim(); if(tt0&&!/^(\+|00)/.test(tt0)) d.telephone=f._pgPays.indic+" "+tt0; }
     if(d.nom.length<2&&d.telephone.replace(/\D/g,"").length<6&&!d.email) return;
     var type=cfg.type==="vente"?"commande":cfg.type==="inscription"?"inscrit":(d.produit||d.quantite?"commande":"inscrit"); if(type==="commande"&&d.telephone.replace(/\D/g,"").length<8) return;
     var cleD="pg1-env-"+cfg.id+"-"+(d.telephone.replace(/\D/g,"")||d.email||d.nom)+(type==="commande"?"-"+new Date().toISOString().slice(0,10):""), deja=false; try{ deja=!!localStorage.getItem(cleD); localStorage.setItem(cleD,"1"); }catch(x){}
@@ -3031,8 +3032,8 @@ function suiviHTML(cfg){
     e.preventDefault();
     var bt=f.querySelector("[type=submit],button"); if(bt){ bt.disabled=true; }
     (f._pageoEnvoi||Promise.resolve()).then(function(){ var r=f.getAttribute("data-pageo-redirection")||cfg.red; var cmdH=f._pageoType==="commande", grp=/chat\.whatsapp|t\.me|telegram|facebook\.com\/groups/i.test(r||""), e2=function(x){ return String(x||"").replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
-      var tt=cmdH?"Merci ! Ta commande est bien reçue.":(f._pageoDeja?"Tu es déjà inscrit(e) !":"Merci pour ton inscription !"), ic=cmdH?"✅":(f._pageoDeja?"😊":"🎉");
-      var st=cmdH?("Nous allons t’appeler"+(f._pageoTel?" au <b>"+e2(f._pageoTel)+"</b>":"")+" pour la livraison."):(f._pageoDeja?"Pas besoin de recommencer, ton inscription est déjà enregistrée.":"Ton inscription est bien enregistrée.");
+      var tt=cmdH?"Félicitations ! Ta commande a été enregistrée avec succès.":(f._pageoDeja?"Tu es déjà inscrit(e) !":"Merci pour ton inscription !"), ic=cmdH?"🎉":(f._pageoDeja?"😊":"🎉");
+      var st=cmdH?("Nous allons t’appeler"+(f._pageoTel?" au <b>"+e2(f._pageoTel)+"</b>":"")+" pour te livrer."):(f._pageoDeja?"Pas besoin de recommencer, ton inscription est déjà enregistrée.":"Ton inscription est bien enregistrée.");
       f.innerHTML='<div style="text-align:center;padding:22px 16px;font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#15112E;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);max-width:440px;margin:10px auto"><div style="font-size:46px;line-height:1">'+ic+'</div><p style="margin:10px 0 6px;font-size:20px;font-weight:800">'+tt+'</p><p style="margin:0 0 '+(r?"14px":"0")+';font-size:15px;line-height:1.5;color:#475569">'+st+'</p>'+
         (r?'<p style="margin:0 0 10px;font-size:14px;color:#64748B">'+(grp?"On t’emmène vers le groupe…":"On t’emmène à la suite…")+'</p><a href="'+e2(r)+'" style="display:inline-block;padding:13px 22px;border-radius:12px;background:'+(grp?"#22C55E":"#5B2BE0")+';color:#fff;font-weight:800;text-decoration:none">'+(grp?"Rejoindre le groupe":"Continuer ➜")+'</a>':"")+'</div>';
       if(r) setTimeout(function(){ if(window.pageoOuvrirApp) window.pageoOuvrirApp(r); else location.href=r; },1800); },function(){ if(bt) bt.disabled=false; alert("Petit souci de connexion, réessaie."); });
@@ -5247,11 +5248,14 @@ function rassurerFacebook(){
   window.pageoOuvrirApp=function(url,suite){ var app=appDe(url); if(!fb||!app){ if(suite) suite(); else location.href=url; return; } carte(app,url,suite); };
   function carte(app,url,suite){ var z=document.getElementById("fb-rassure"); if(z) z.remove();
     z=document.createElement("div"); z.id="fb-rassure"; z.setAttribute("role","dialog");
-    z.setAttribute("style","position:fixed!important;left:50%!important;top:14px!important;transform:translateX(-50%)!important;z-index:2147483647!important;width:calc(100% - 28px)!important;max-width:400px!important;box-sizing:border-box!important;margin:0!important;background:#fff!important;color:#15112E!important;border-radius:20px!important;padding:16px 16px 14px!important;box-shadow:0 16px 40px rgba(0,0,0,.3)!important;font:500 15px/1.5 system-ui,-apple-system,sans-serif!important;text-align:center!important;float:none!important;border-top:5px solid #22C55E!important");
-    z.innerHTML='<button type="button" data-fr-x aria-label="Fermer" style="position:absolute;right:8px;top:8px;width:30px;height:30px;border-radius:50%;border:0;background:#F1F5F9;color:#475569;font-size:14px;cursor:pointer">✕</button>'+
-      '<div style="font-size:38px;line-height:1">😊👍</div><p style="margin:8px 0 4px;font-size:19px;font-weight:800;color:#15112E">Pas de panique !</p>'+
-      '<p style="margin:0;color:#475569">Facebook va te demander la permission d’ouvrir '+app+'. C’est normal 🙂 Touche simplement <b style="color:#166534">« Continuer »</b>.</p>'+
-      '<button type="button" data-fr-ok style="margin-top:12px;width:100%;border:0;border-radius:14px;padding:14px;background:#22C55E;color:#fff;font:800 16px system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:0 8px 20px rgba(34,197,94,.35)">J’ai compris, ouvrir '+app+'</button>';
+    z.setAttribute("style","position:fixed!important;inset:0!important;z-index:2147483647!important;background:rgba(10,8,25,.62)!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:18px!important;box-sizing:border-box!important;margin:0!important;font-family:system-ui,-apple-system,sans-serif!important");
+    z.innerHTML='<div style="position:relative;width:100%;max-width:420px;box-sizing:border-box;background:#fff;color:#15112E;border-radius:24px;padding:26px 20px 20px;box-shadow:0 24px 60px rgba(0,0,0,.45);text-align:center;border-top:6px solid #22C55E">'+
+      '<button type="button" data-fr-x aria-label="Fermer" style="position:absolute;right:10px;top:10px;width:36px;height:36px;border-radius:50%;border:0;background:#F1F5F9;color:#475569;font-size:16px;cursor:pointer">✕</button>'+
+      '<div style="font-size:60px;line-height:1">😊👍</div>'+
+      '<p style="margin:14px 0 8px;font-size:26px;font-weight:900;color:#15112E">Pas de panique !</p>'+
+      '<p style="margin:0;font-size:18px;line-height:1.55;color:#334155">Facebook va te demander la permission d’ouvrir <b>'+app+'</b>.<br>C’est tout à fait normal 🙂</p>'+
+      '<p style="margin:16px 0 0;display:inline-block;background:#DCFCE7;color:#166534;font-weight:800;font-size:17px;border-radius:999px;padding:9px 16px">Ensuite, touche « Continuer » ✅</p>'+
+      '<button type="button" data-fr-ok style="margin-top:20px;width:100%;border:0;border-radius:16px;padding:18px 14px;background:#22C55E;color:#fff;font:900 19px system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:0 10px 24px rgba(34,197,94,.4)">J’ai compris, ouvrir '+app+'</button></div>';
     (document.documentElement||document.body).appendChild(z);
     z.querySelector("[data-fr-x]").onclick=function(){ z.remove(); };
     z.querySelector("[data-fr-ok]").onclick=function(){ var b=this; b.textContent="Touche « Continuer » ✅"; b.style.background="#DCFCE7"; b.style.color="#166534"; b.style.boxShadow="none";
@@ -5335,6 +5339,36 @@ document.addEventListener("click",async function(e){
   if(faits) toast("✅ Images optimisées : page "+Math.max(1,Math.round((1-h.length/avant)*100))+" % plus légère.");
   b._optiOk=true; b.click(); setTimeout(function(){ b._optiOk=false; },1500);
 },true);
+
+/* ---------- 3. Pages en code HTML : choix du pays (drapeau + indicatif) devant la case du numéro, pays détecté tout seul ---------- */
+function paysTelephone(){
+  try{
+    var noms=null; try{ noms=new Intl.DisplayNames(["fr"],{type:"region"}); }catch(e){}
+    var dr=function(c){ return String.fromCodePoint.apply(null,c.split("").map(function(x){ return 127397+x.charCodeAt(0); })); };
+    var prio=["BF","CI","SN","ML","BJ","TG","NE","CM","GN","GA","CG","CD","TD","CF","MR","MA","DZ","TN","FR","BE","CA","CH"];
+    var l=INDICATIFS.split(",").map(function(x){ var c=x.slice(0,2); var n=c; try{ n=noms?noms.of(c):c; }catch(e){} return {code:c,indic:"+"+x.slice(2),nom:n}; });
+    l.sort(function(a,b){ var ia=prio.indexOf(a.code), ib=prio.indexOf(b.code); if(ia>=0||ib>=0) return (ia<0?99:ia)-(ib<0?99:ib); return a.nom.localeCompare(b.nom,"fr"); });
+    var tz=""; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(e){}
+    var moi=TZ[tz]; if(!moi){ var r=((navigator.language||"").split("-")[1]||"").toUpperCase(); moi=l.some(function(p){ return p.code===r; })?r:"BF"; }
+    var champs=document.querySelectorAll('form input[type="tel"], form input[name*="tel" i], form input[name*="phone" i], form input[name*="whatsapp" i], form input[name*="numero" i], form input[placeholder*="numéro" i], form input[placeholder*="téléphone" i], form input[placeholder*="whatsapp" i]');
+    [].forEach.call(champs,function(inp){
+      var f=inp.form; if(!f||f._pgPays||inp.type==="hidden") return;
+      if(f.querySelector('select[name*="pays" i], select[name*="country" i], select[name*="indic" i]')) return; /* le vendeur a déjà son propre choix du pays */
+      var st=getComputedStyle(inp), cur=l.filter(function(p){ return p.code===moi; })[0]||l[0];
+      var sel=document.createElement("select"); sel.setAttribute("aria-label","Pays");
+      sel.innerHTML=l.map(function(p){ return '<option value="'+p.code+'"'+(p.code===cur.code?" selected":"")+'>'+dr(p.code)+" "+p.indic+" · "+p.nom+'</option>'; }).join("");
+      sel.setAttribute("style","flex:0 0 auto;width:auto;max-width:38%;box-sizing:border-box;margin:0;border:"+st.border+";border-radius:"+st.borderRadius+";background:"+st.backgroundColor+";color:"+st.color+";font-size:"+st.fontSize+";padding:0 6px;height:"+inp.offsetHeight+"px");
+      var box=document.createElement("span"); box.setAttribute("style","display:flex;gap:6px;align-items:stretch;width:100%;box-sizing:border-box;margin:"+st.margin);
+      inp.parentNode.insertBefore(box,inp); box.appendChild(sel); box.appendChild(inp); inp.style.flex="1 1 auto"; inp.style.minWidth="0"; inp.style.margin="0";
+      var maj=function(){ var p=l.filter(function(x){ return x.code===sel.value; })[0]; f._pgPays={code:p.code,indic:p.indic}; };
+      sel.addEventListener("change",maj); maj();
+      /* affichage court dans la case une fois choisi : drapeau + indicatif */
+      var court=function(){ [].forEach.call(sel.options,function(o){ var p=l.filter(function(x){ return x.code===o.value; })[0]; o.textContent=dr(p.code)+" "+p.indic; }); };
+      sel.addEventListener("focus",function(){ [].forEach.call(sel.options,function(o){ var p=l.filter(function(x){ return x.code===o.value; })[0]; o.textContent=dr(p.code)+" "+p.indic+" · "+p.nom; }); });
+      sel.addEventListener("blur",court); sel.addEventListener("change",court); court();
+    });
+  }catch(e){}
+}
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
