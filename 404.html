@@ -3035,7 +3035,7 @@ function suiviHTML(cfg){
       var st=cmdH?("Nous allons t’appeler"+(f._pageoTel?" au <b>"+e2(f._pageoTel)+"</b>":"")+" pour la livraison."):(f._pageoDeja?"Pas besoin de recommencer, ton inscription est déjà enregistrée.":"Ton inscription est bien enregistrée.");
       f.innerHTML='<div style="text-align:center;padding:22px 16px;font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#15112E;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);max-width:440px;margin:10px auto"><div style="font-size:46px;line-height:1">'+ic+'</div><p style="margin:10px 0 6px;font-size:20px;font-weight:800">'+tt+'</p><p style="margin:0 0 '+(r?"14px":"0")+';font-size:15px;line-height:1.5;color:#475569">'+st+'</p>'+
         (r?'<p style="margin:0 0 10px;font-size:14px;color:#64748B">'+(grp?"On t’emmène vers le groupe…":"On t’emmène à la suite…")+'</p><a href="'+e2(r)+'" style="display:inline-block;padding:13px 22px;border-radius:12px;background:'+(grp?"#22C55E":"#5B2BE0")+';color:#fff;font-weight:800;text-decoration:none">'+(grp?"Rejoindre le groupe":"Continuer ➜")+'</a>':"")+'</div>';
-      if(r) setTimeout(function(){ location.href=r; },1800); },function(){ if(bt) bt.disabled=false; alert("Petit souci de connexion, réessaie."); });
+      if(r) setTimeout(function(){ if(window.pageoOuvrirApp) window.pageoOuvrirApp(r); else location.href=r; },1800); },function(){ if(bt) bt.disabled=false; alert("Petit souci de connexion, réessaie."); });
   });
   /* Le bas de page Pagéo (J'aime, bandeau) se place TOUJOURS sous la page du vendeur, quelle que soit sa mise en page */
   function piedPageo(){ var z=document.getElementById("pageo-pied"); if(z) return z; z=document.createElement("div"); z.id="pageo-pied";
@@ -3114,7 +3114,7 @@ async function afficherPagePublique(){
     if(!cmd){ var grp=/chat\.whatsapp|t\.me|telegram|facebook\.com\/groups/i.test(b.c.redirection||""), redI=/^https?:\/\//i.test(b.c.redirection||"")?b.c.redirection:"";
       f.outerHTML='<div style="text-align:center;padding:8px 0"><div style="font-size:40px">'+(deja?"😊":"🎉")+'</div><p style="margin:6px 0 10px;font-weight:700">'+(deja?"Tu es déjà inscrit(e) ! Pas besoin de recommencer.":esc(b.c.merci))+'</p>'+(redI?'<p class="cmd-ok-s" data-compte>'+(grp?'On t’emmène vers le groupe…':'On t’emmène à la suite…')+'</p><a class="bt" data-rejoindre href="'+esc(redI)+'" style="background:'+b.s.accent+';color:#fff">'+(grp?'Rejoindre le groupe':'Continuer ➜')+'</a>':'')+'</div>';
       /* le lien s'ouvre tout seul (le bouton reste là en secours) */
-      if(redI) setTimeout(function(){ location.href=redI; },2000); }
+      if(redI) setTimeout(function(){ if(window.pageoOuvrirApp) window.pageoOuvrirApp(redI); else location.href=redI; },2000); }
     else { /* Commande : enregistrée, belle confirmation SANS quitter la page (pas de message « application externe » de Facebook) */
       var txt="Bonjour, je viens de commander sur votre page « "+page.titre+" » :\n• "+(d.produit||"")+(d.quantite&&!/×/.test(d.produit||"")?" × "+d.quantite:"")+(d.montant?"\n• Total : "+nb(d.montant)+" "+d.devise:"")+(f.photo&&f.photo.value?"\n• Photo : "+f.photo.value:"")+(d.nom?"\n• Nom : "+d.nom:"")+"\n• Téléphone : "+d.telephone+(d.ville?"\n• Ville : "+d.ville+(d.zone?" ("+d.zone+")":""):"")+(d.adresse?"\n• Adresse : "+d.adresse:"");
       var prenom=(d.nom||"").split(/\s+/)[0], numV=String(b.c.numero||"").replace(/\D/g,"");
@@ -5241,20 +5241,30 @@ setInterval(function(){ var b=document.getElementById("r-badge"); if(!b||documen
    ===================================================================== */
 /* ---------- 1. « Pas de panique ! Touche Continuer » ---------- */
 function rassurerFacebook(){
-  if(!/FBAN|FBAV|FB_IAB|FBIOS|Instagram/i.test(navigator.userAgent||"")) return;
-  function montrer(app){ var z=document.getElementById("fb-rassure"); if(z) z.remove();
-    /* style écrit directement : marche aussi sur les pages en code HTML, et ne touche jamais à leur mise en page */
-    z=document.createElement("div"); z.id="fb-rassure"; z.setAttribute("role","status");
-    z.setAttribute("style","position:fixed!important;left:50%!important;top:14px!important;transform:translateX(-50%)!important;z-index:2147483647!important;width:calc(100% - 28px)!important;max-width:400px!important;box-sizing:border-box!important;margin:0!important;background:#fff!important;color:#15112E!important;border-radius:20px!important;padding:16px 16px 14px!important;box-shadow:0 16px 40px rgba(0,0,0,.28)!important;font:500 15px/1.5 system-ui,-apple-system,sans-serif!important;text-align:center!important;float:none!important;border-top:5px solid #22C55E!important");
-    z.innerHTML='<div style="font-size:38px;line-height:1">😊👍</div><p style="margin:8px 0 4px;font-size:19px;font-weight:800;color:#15112E">Pas de panique !</p><p style="margin:0;color:#475569">Facebook va te demander la permission d’ouvrir '+app+'. C’est normal 🙂</p><p style="margin:10px 0 0;display:inline-block;background:#DCFCE7;color:#166534;font-weight:800;border-radius:999px;padding:7px 14px">Touche « Continuer » ✅</p>';
+  var fb=/FBAN|FBAV|FB_IAB|FBIOS|Instagram/i.test(navigator.userAgent||"");
+  var appDe=function(h){ h=String(h||""); return /wa\.me|whatsapp/i.test(h)?"WhatsApp":/^tel:/i.test(h)?"le téléphone":/t\.me\/|telegram/i.test(h)?"Telegram":""; };
+  /* Ouvre un lien ; depuis Facebook/Instagram vers une application : d'abord la carte, puis la personne confirme */
+  window.pageoOuvrirApp=function(url,suite){ var app=appDe(url); if(!fb||!app){ if(suite) suite(); else location.href=url; return; } carte(app,url,suite); };
+  function carte(app,url,suite){ var z=document.getElementById("fb-rassure"); if(z) z.remove();
+    z=document.createElement("div"); z.id="fb-rassure"; z.setAttribute("role","dialog");
+    z.setAttribute("style","position:fixed!important;left:50%!important;top:14px!important;transform:translateX(-50%)!important;z-index:2147483647!important;width:calc(100% - 28px)!important;max-width:400px!important;box-sizing:border-box!important;margin:0!important;background:#fff!important;color:#15112E!important;border-radius:20px!important;padding:16px 16px 14px!important;box-shadow:0 16px 40px rgba(0,0,0,.3)!important;font:500 15px/1.5 system-ui,-apple-system,sans-serif!important;text-align:center!important;float:none!important;border-top:5px solid #22C55E!important");
+    z.innerHTML='<button type="button" data-fr-x aria-label="Fermer" style="position:absolute;right:8px;top:8px;width:30px;height:30px;border-radius:50%;border:0;background:#F1F5F9;color:#475569;font-size:14px;cursor:pointer">✕</button>'+
+      '<div style="font-size:38px;line-height:1">😊👍</div><p style="margin:8px 0 4px;font-size:19px;font-weight:800;color:#15112E">Pas de panique !</p>'+
+      '<p style="margin:0;color:#475569">Facebook va te demander la permission d’ouvrir '+app+'. C’est normal 🙂 Touche simplement <b style="color:#166534">« Continuer »</b>.</p>'+
+      '<button type="button" data-fr-ok style="margin-top:12px;width:100%;border:0;border-radius:14px;padding:14px;background:#22C55E;color:#fff;font:800 16px system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:0 8px 20px rgba(34,197,94,.35)">J’ai compris, ouvrir '+app+'</button>';
     (document.documentElement||document.body).appendChild(z);
-    clearTimeout(window._frT); window._frT=setTimeout(function(){ var y=document.getElementById("fb-rassure"); if(y) y.remove(); },9000); }
-  document.addEventListener("click",function(e){ var t=e.target; if(!t.closest) return;
-    var a=t.closest("a[href]"), h=a?a.getAttribute("href")||"":"", app="";
-    if(/wa\.me|whatsapp/i.test(h)) app="WhatsApp"; else if(/^tel:/i.test(h)) app="le téléphone"; else if(/t\.me\/|telegram/i.test(h)) app="Telegram";
-    if(!app&&t.closest("[data-wa]")) app="WhatsApp";
-    if(!app) return; montrer(app);
-    if(a&&/^(https?:|tel:)/i.test(h)&&/wa\.me|whatsapp|^tel:|t\.me\/|telegram/i.test(h)&&!e.defaultPrevented){ e.preventDefault(); setTimeout(function(){ location.href=h; },900); } /* le temps de lire le message */
+    z.querySelector("[data-fr-x]").onclick=function(){ z.remove(); };
+    z.querySelector("[data-fr-ok]").onclick=function(){ var b=this; b.textContent="Touche « Continuer » ✅"; b.style.background="#DCFCE7"; b.style.color="#166534"; b.style.boxShadow="none";
+      /* la carte reste affichée pendant la question de Facebook ; elle s'en va quand la personne revient */
+      var parti=false; var vis=function(){ if(document.hidden){ parti=true; } else if(parti){ var y=document.getElementById("fb-rassure"); if(y) y.remove(); document.removeEventListener("visibilitychange",vis); } };
+      document.addEventListener("visibilitychange",vis);
+      if(suite) suite(); else location.href=url; };
+  }
+  if(!fb) return;
+  document.addEventListener("click",function(e){ var t=e.target; if(!t.closest||t.closest("#fb-rassure")) return;
+    var a=t.closest("a[href]"), h=a?a.getAttribute("href")||"":"", app=appDe(h);
+    if(app&&/^(https?:|tel:)/i.test(h)){ e.preventDefault(); e.stopImmediatePropagation(); carte(app,h); return; }
+    var w=t.closest("[data-wa]"); if(w&&!w._frOk){ e.preventDefault(); e.stopImmediatePropagation(); carte("WhatsApp","",function(){ w._frOk=true; w.click(); setTimeout(function(){ w._frOk=false; },1500); }); }
   },true);
 }
 rassurerFacebook();
