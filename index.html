@@ -1397,6 +1397,19 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 }
 .rf-barre [data-rf="plus"],.rf-barre [data-rf="moins"]{min-width:42px;min-height:36px;font-size:15px!important;font-weight:800!important}
 .rf-taille{display:inline-flex;align-items:center;padding:0 8px;font:700 12.5px system-ui,-apple-system,sans-serif;color:#5B21B6;background:#EDE9FE;border-radius:8px;min-height:36px}
+/* ====== Version 48 : la vitrine ====== */
+@media (min-width:1200px){
+  body.ed-ouvert{overflow:hidden}
+  body.ed-ouvert #s-editeur .ed{height:var(--ed-haut,80vh);align-items:stretch}
+  body.ed-ouvert #s-editeur .ed-gauche{position:static;height:100%;max-height:none;overflow-y:auto;overscroll-behavior:contain}
+  body.ed-ouvert #s-editeur .ed-zone{position:static;height:100%;max-height:none;display:flex;flex-direction:column;min-height:0}
+  body.ed-ouvert #s-editeur .ed-centre{height:100%;max-height:none;min-height:0;display:flex!important;flex-direction:column;align-items:center}
+  body.ed-ouvert #s-editeur #cadre{flex:1 1 auto;min-height:0;height:auto;max-height:none;overflow-y:auto;overscroll-behavior:contain}
+}
+.rf-commune{position:sticky;top:0;z-index:5;background:#fff;border:1.5px solid #C4B5FD;border-radius:12px;margin:0 0 12px;box-shadow:0 6px 14px rgba(124,58,237,.10)}
+.rf-commune-t{font-size:12.5px;padding:7px 10px 0;color:#5B21B6}
+.rf-commune .rf-barre{border-bottom:0;border-radius:0 0 12px 12px}
+.rf-zone.rf-active{box-shadow:inset 0 0 0 2px #7C3AED}
 
 </style>
 </head>
@@ -5527,10 +5540,8 @@ function posDans(el,c){ return el.getBoundingClientRect().top-c.getBoundingClien
 function zoneDefil(){ var a=$("apercu"); for(var p=a&&a.parentElement;p&&p!==document.body;p=p.parentElement){ var o=getComputedStyle(p).overflowY; if(/(auto|scroll)/.test(o)&&p.scrollHeight>p.clientHeight+2) return p; } return document.scrollingElement||document.documentElement; }
 function posZ(el,z){ var r=el.getBoundingClientRect().top; return (z===document.scrollingElement||z===document.documentElement)?r+window.scrollY:r-z.getBoundingClientRect().top+z.scrollTop; }
 var _raV41=rendreApercu;
-rendreApercu=function(){ var z=zoneDefil(), el=ED.sel?document.querySelector('#apercu [data-b="'+ED.sel+'"]'):null, ecart=el?posZ(el,z)-z.scrollTop:null, haut=z.scrollTop;
-  var r=_raV41.apply(this,arguments);
-  var el2=ED.sel?document.querySelector('#apercu [data-b="'+ED.sel+'"]'):null; z.scrollTop=(el2&&ecart!==null)?Math.max(0,posZ(el2,z)-ecart):haut;
-  preparerEcritureDirecte(); placerBarre(); return r; };
+/* Le redessin garde seulement la position à l'intérieur de l'aperçu : la page, elle, ne bouge jamais */
+rendreApercu=function(){ var c=$("cadre"), haut=c?c.scrollTop:0; var r=_raV41.apply(this,arguments); if(c) c.scrollTop=haut; preparerEcritureDirecte(); placerBarre(); return r; };
 /* On ne fait défiler que si le bloc choisi est caché, et sans glisser */
 voirBloc=function(){ setTimeout(function(){ var el=document.querySelector('#apercu [data-b="'+ED.sel+'"]'); if(!el) return; var r=el.getBoundingClientRect();
   if(r.top<70||r.top>innerHeight-80){ var z=zoneDefil(); z.scrollTop=Math.max(0,posZ(el,z)-90); } placerBarre(); },40); };
@@ -5788,8 +5799,8 @@ function rfStyle(z,prop,val){ var s=getSelection(); if(!s.rangeCount||s.isCollap
   var r=s.getRangeAt(0), sp=document.createElement("span"); sp.style[prop]=val; try{ sp.appendChild(r.extractContents()); r.insertNode(sp); s.removeAllRanges(); var r2=document.createRange(); r2.selectNodeContents(sp); s.addRange(r2); }catch(x){ return false; } return true; }
 function rfTailleActuelle(z){ var s=getSelection(), n=s.anchorNode; n=n&&n.nodeType===3?n.parentNode:n; var px=parseFloat(getComputedStyle(n||z).fontSize)||16, base=parseFloat(getComputedStyle(z).fontSize)||16; return px/base; }
 document.addEventListener("mousedown",function(e){ if(e.target.closest&&e.target.closest(".rf-barre button")) e.preventDefault(); },true);
-document.addEventListener("click",function(e){ var pc=e.target.closest&&e.target.closest("[data-rfcol]"); if(pc){ e.preventDefault(); var zz=pc.closest(".rf").querySelector(".rf-zone"); if(rfStyle(zz,"color",pc.dataset.rfcol)) rfSauver(zz); } },true);
-document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target.closest("[data-rf]"); if(!bt||bt.dataset.rf==="plus"||bt.dataset.rf==="moins") return; e.preventDefault(); var z=bt.closest(".rf").querySelector(".rf-zone"); var a=bt.dataset.rf;
+document.addEventListener("click",function(e){ var pc=e.target.closest&&e.target.closest("[data-rfcol]"); if(pc){ e.preventDefault(); var zz=zoneDe(pc); if(rfStyle(zz,"color",pc.dataset.rfcol)) rfSauver(zz); } },true);
+document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target.closest("[data-rf]"); if(!bt||bt.dataset.rf==="plus"||bt.dataset.rf==="moins") return; e.preventDefault(); var z=zoneDe(bt); var a=bt.dataset.rf;
   if(a==="sanscouleur"){ var sel=getSelection(), r=sel.rangeCount&&!sel.isCollapsed&&z.contains(sel.anchorNode)?sel.getRangeAt(0):null;
     [].forEach.call(z.querySelectorAll("[style]"),function(n){ if(r&&!r.intersectsNode(n)) return; n.style.color=""; if(!n.getAttribute("style")||!n.getAttribute("style").trim()){ n.removeAttribute("style"); if(n.tagName==="SPAN"){ var f=document.createDocumentFragment(); while(n.firstChild) f.appendChild(n.firstChild); n.replaceWith(f); } } });
     [].forEach.call(z.querySelectorAll("font[color]"),function(n){ if(!r||r.intersectsNode(n)) n.removeAttribute("color"); }); rfSauver(z); return; }
@@ -5798,7 +5809,7 @@ document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target
   else if(a==="effacer"){ z.focus(); document.execCommand("removeFormat"); }
   else return; /* A− / A+ : gérés par l’échelle de tailles (version 47) */
   rfSauver(z); },true);
-document.addEventListener("change",function(e){ var t=e.target; if(!t.closest||!t.closest(".rf-barre")) return; var z=t.closest(".rf").querySelector(".rf-zone");
+document.addEventListener("change",function(e){ var t=e.target; if(!t.closest||!t.closest(".rf-barre")) return; var z=zoneDe(t);
   if(t.matches("[data-rfc]")){ if(rfStyle(z,"color",t.value)) rfSauver(z); }
   if(t.matches("[data-rfp]")){ if(rfStyle(z,"fontFamily",t.value?'"'+t.value+'",sans-serif':"inherit")) rfSauver(z); t.value=""; } },true);
 /* Le rendu remplace le texte simple par le texte mis en forme (pages et aperçu) */
@@ -5866,10 +5877,10 @@ var TAILLES=[[0.75,"Très petit"],[0.875,"Petit"],[1,"Normal"],[1.25,"Moyen"],[1
 function crans(em){ var i=0,d=99; TAILLES.forEach(function(t,k){ var x=Math.abs(t[0]-em); if(x<d){ d=x; i=k; } }); return i; }
 function spanTaille(z){ var s=getSelection(); if(!s.rangeCount) return null; var n=s.getRangeAt(0).commonAncestorContainer; n=n.nodeType===3?n.parentNode:n;
   while(n&&n!==z){ if(n.tagName==="SPAN"&&n.style&&n.style.fontSize) return n; n=n.parentNode; } return null; }
-function majEtiquette(z){ var b=z&&z.closest(".rf"); if(!b) return; var l=b.querySelector(".rf-taille"); if(!l) return; var sp=spanTaille(z), em=sp?parseFloat(sp.style.fontSize)||1:1; l.textContent=TAILLES[crans(em)][1]; }
+function majEtiquette(z){ var l=document.querySelector(".rf-commune .rf-taille")||(z&&z.closest(".rf")&&z.closest(".rf").querySelector(".rf-taille")); if(!l) return; var sp=spanTaille(z), em=sp?parseFloat(sp.style.fontSize)||1:1; l.textContent=TAILLES[crans(em)][1]; }
 document.addEventListener("selectionchange",function(){ var a=document.activeElement; if(a&&a.classList&&a.classList.contains("rf-zone")) majEtiquette(a); });
 document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target.closest('[data-rf="plus"],[data-rf="moins"]'); if(!bt) return; e.preventDefault(); e.stopImmediatePropagation();
-  var z=bt.closest(".rf").querySelector(".rf-zone"), s=getSelection(); if(!s.rangeCount||s.isCollapsed||!z.contains(s.anchorNode)){ toast("Sélectionne d’abord les mots à agrandir ou réduire."); return; }
+  var z=zoneDe(bt), s=getSelection(); if(!s.rangeCount||s.isCollapsed||!z.contains(s.anchorNode)){ toast("Sélectionne d’abord les mots à agrandir ou réduire."); return; }
   var pas=bt.dataset.rf==="plus"?1:-1, sp=spanTaille(z), r=s.getRangeAt(0);
   var memeTexte=sp&&sp.textContent===r.toString();
   if(sp&&memeTexte){ var i=Math.max(0,Math.min(TAILLES.length-1,crans(parseFloat(sp.style.fontSize)||1)+pas)); sp.style.fontSize=TAILLES[i][0]+"em"; }
@@ -5879,6 +5890,33 @@ document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target
 /* l'étiquette de taille entre A− et A+ */
 var _chV47=ch;
 ch=function(id,lab,type,val,b){ var h=_chV47.apply(this,arguments); return h.replace('<button type="button" data-rf="plus"','<span class="rf-taille">Normal</span><button type="button" data-rf="plus"'); };
+
+/* =====================================================================
+   VERSION 48 — La vitrine : sur ordinateur, l'éditeur tient dans l'écran, la page ne défile plus ;
+   l'aperçu a une taille fixe (on fait défiler son intérieur) ; la colonne de gauche défile seule.
+   Une seule barre de mise en forme, en haut des réglages, pour le texte touché.
+   ===================================================================== */
+/* ---------- la zone de texte visée : celle de la barre, sinon la dernière touchée ---------- */
+function zoneDe(el){ var r=el&&el.closest&&el.closest(".rf"); if(r) return r.querySelector(".rf-zone"); return (window._rfZ&&document.contains(window._rfZ))?window._rfZ:document.querySelector(".rf-zone"); }
+document.addEventListener("focusin",function(e){ var z=e.target.closest&&e.target.closest(".rf-zone"); if(!z) return; window._rfZ=z; [].forEach.call(document.querySelectorAll(".rf-zone.rf-active"),function(x){ x.classList.remove("rf-active"); }); z.classList.add("rf-active"); var n=$("rf-cible"); if(n){ var l=z.closest(".champ")&&z.closest(".champ").querySelector("label"); n.textContent=l?l.textContent:"Texte"; } });
+/* la sélection est gardée, même quand on touche la couleur ou la police */
+document.addEventListener("selectionchange",function(){ var s=getSelection(); if(!s.rangeCount) return; var z=s.anchorNode&&(s.anchorNode.nodeType===3?s.anchorNode.parentNode:s.anchorNode); z=z&&z.closest&&z.closest(".rf-zone"); if(z&&!s.isCollapsed){ window._rfR=s.getRangeAt(0).cloneRange(); window._rfZ=z; } });
+var _rfsV48=rfStyle;
+rfStyle=function(z,prop,val){ var s=getSelection(); if((!s.rangeCount||s.isCollapsed||!z.contains(s.anchorNode))&&window._rfR&&z.contains(window._rfR.startContainer)){ s.removeAllRanges(); s.addRange(window._rfR); } return _rfsV48.apply(this,arguments); };
+document.addEventListener("mousedown",function(e){ var b=e.target.closest&&e.target.closest(".rf-commune [data-rf]"); if(!b) return; var z=zoneDe(b), s=getSelection(); if(window._rfR&&z&&z.contains(window._rfR.startContainer)&&(!s.rangeCount||!z.contains(s.anchorNode))){ s.removeAllRanges(); s.addRange(window._rfR); } },true);
+
+/* ---------- une seule barre, en haut des réglages ---------- */
+var _rregV48=rendreReglages;
+rendreReglages=function(){ _rregV48.apply(this,arguments); var R=petit()?$("reglages-mobile"):$("reglages"); if(!R) return; var bars=R.querySelectorAll(".rf .rf-barre"); if(!bars.length) return;
+  var com=document.createElement("div"); com.className="rf-commune"; com.innerHTML='<div class="rf-commune-t">✏️ Mise en forme · <b id="rf-cible">touche un texte, puis sélectionne des mots</b></div>';
+  com.appendChild(bars[0]); [].forEach.call(R.querySelectorAll(".rf .rf-barre"),function(b){ b.remove(); });
+  var g=R.querySelector(".reg-grille")||R; g.parentNode.insertBefore(com,g); window._rfZ=null; };
+
+/* ---------- la vitrine : l'éditeur tient dans l'écran ---------- */
+function vitrine(){ var ed=$("s-editeur"), ouvert=ed&&!ed.classList.contains("cache")&&!petit(); document.body.classList.toggle("ed-ouvert",!!ouvert); if(!ouvert) return;
+  var e=$("ed"); if(!e) return; var y=e.getBoundingClientRect().top+window.scrollY; document.documentElement.style.setProperty("--ed-haut",Math.max(360,innerHeight-y-12)+"px"); window.scrollTo(0,0); }
+setInterval(function(){ var ed=$("s-editeur"); var o=ed&&!ed.classList.contains("cache")&&!petit(); if(o!==document.body.classList.contains("ed-ouvert")) vitrine(); },400);
+window.addEventListener("resize",vitrine); window.addEventListener("hashchange",function(){ setTimeout(vitrine,120); });
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
