@@ -1379,6 +1379,24 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 @container (max-width:620px){.sec-titre{font-size:1.25em}.sec-contenu{gap:8px}}
 @media (max-width:620px){.sec-titre{font-size:1.25em}.sec-contenu{gap:8px}}
 .rf-barre .rf-pastille{width:24px;height:24px;padding:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #CBD5E1}
+/* ====== Version 47 : éditeur sur ordinateur, aperçu accroché ; A− A+ ====== */
+@media (min-width:1200px){
+  body.ed-range #s-editeur > .ent.ent-ed-reduite{display:none}
+  body.ed-range #s-editeur .ed{align-items:start}
+  body.ed-range #s-editeur .ed-gauche{position:sticky;top:76px;max-height:calc(100vh - 92px);overflow-y:auto;overscroll-behavior:contain}
+  body.ed-range #s-editeur .ed-zone{position:sticky;top:76px;max-height:calc(100vh - 92px);overscroll-behavior:contain}
+  body.ed-range #s-editeur .ed-centre{max-height:calc(100vh - 92px)}
+  body.ed-range #s-editeur #cadre{overscroll-behavior:contain}
+  .ed-barre-ap{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;width:100%}
+  .ed-actions-ap{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto}
+  .ed-actions-ap .btn{padding:8px 12px;font-size:14px}
+  .ed-actions-ap #ed-publier{padding:9px 18px;font-size:15px}
+  .ed-actions-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--ligne)}
+  .ed-actions-g .btn{padding:7px 10px;font-size:13px}
+  .ed-titre-g{width:100%;display:flex;flex-direction:column;gap:2px;margin-bottom:4px}.ed-titre-g b{font-size:16px}.ed-titre-g small{color:var(--doux);font-size:12.5px}
+}
+.rf-barre [data-rf="plus"],.rf-barre [data-rf="moins"]{min-width:42px;min-height:36px;font-size:15px!important;font-weight:800!important}
+.rf-taille{display:inline-flex;align-items:center;padding:0 8px;font:700 12.5px system-ui,-apple-system,sans-serif;color:#5B21B6;background:#EDE9FE;border-radius:8px;min-height:36px}
 
 </style>
 </head>
@@ -5771,14 +5789,14 @@ function rfStyle(z,prop,val){ var s=getSelection(); if(!s.rangeCount||s.isCollap
 function rfTailleActuelle(z){ var s=getSelection(), n=s.anchorNode; n=n&&n.nodeType===3?n.parentNode:n; var px=parseFloat(getComputedStyle(n||z).fontSize)||16, base=parseFloat(getComputedStyle(z).fontSize)||16; return px/base; }
 document.addEventListener("mousedown",function(e){ if(e.target.closest&&e.target.closest(".rf-barre button")) e.preventDefault(); },true);
 document.addEventListener("click",function(e){ var pc=e.target.closest&&e.target.closest("[data-rfcol]"); if(pc){ e.preventDefault(); var zz=pc.closest(".rf").querySelector(".rf-zone"); if(rfStyle(zz,"color",pc.dataset.rfcol)) rfSauver(zz); } },true);
-document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target.closest("[data-rf]"); if(!bt) return; e.preventDefault(); var z=bt.closest(".rf").querySelector(".rf-zone"); var a=bt.dataset.rf;
+document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target.closest("[data-rf]"); if(!bt||bt.dataset.rf==="plus"||bt.dataset.rf==="moins") return; e.preventDefault(); var z=bt.closest(".rf").querySelector(".rf-zone"); var a=bt.dataset.rf;
   if(a==="sanscouleur"){ var sel=getSelection(), r=sel.rangeCount&&!sel.isCollapsed&&z.contains(sel.anchorNode)?sel.getRangeAt(0):null;
     [].forEach.call(z.querySelectorAll("[style]"),function(n){ if(r&&!r.intersectsNode(n)) return; n.style.color=""; if(!n.getAttribute("style")||!n.getAttribute("style").trim()){ n.removeAttribute("style"); if(n.tagName==="SPAN"){ var f=document.createDocumentFragment(); while(n.firstChild) f.appendChild(n.firstChild); n.replaceWith(f); } } });
     [].forEach.call(z.querySelectorAll("font[color]"),function(n){ if(!r||r.intersectsNode(n)) n.removeAttribute("color"); }); rfSauver(z); return; }
   if(a==="ligne"){ z.focus(); document.execCommand("insertLineBreak"); }
   else if(a==="gras"){ z.focus(); document.execCommand("bold"); }
   else if(a==="effacer"){ z.focus(); document.execCommand("removeFormat"); }
-  else { var f=rfTailleActuelle(z)*(a==="plus"?1.25:0.8); f=Math.max(0.5,Math.min(4,f)); rfStyle(z,"fontSize",(Math.round(f*100)/100)+"em"); }
+  else return; /* A− / A+ : gérés par l’échelle de tailles (version 47) */
   rfSauver(z); },true);
 document.addEventListener("change",function(e){ var t=e.target; if(!t.closest||!t.closest(".rf-barre")) return; var z=t.closest(".rf").querySelector(".rf-zone");
   if(t.matches("[data-rfc]")){ if(rfStyle(z,"color",t.value)) rfSauver(z); }
@@ -5822,6 +5840,45 @@ var _rregV46=rendreReglages;
 rendreReglages=function(){ _rregV46.apply(this,arguments); var R=petit()?$("reglages-mobile"):$("reglages"); if(!R) return;
   [].forEach.call(R.querySelectorAll('[data-place="cote"]'),function(c){ var l=c.closest("label"); if(l) l.remove(); });
   [].forEach.call(R.querySelectorAll(".col-outils"),function(x){ x.remove(); }); };
+
+/* =====================================================================
+   VERSION 47 — Éditeur sur ordinateur : la barre du haut disparaît (l'aperçu remonte),
+   Publier / ↶ ↷ / Voir ma page au-dessus de l'aperçu, Image de partage et Annuler à gauche ;
+   l'aperçu reste accroché à l'écran, la colonne des blocs défile seule.
+   A− / A+ : une échelle de tailles, un cran à la fois, sans empiler.
+   ===================================================================== */
+function rangerEditeur(){ if(petit()) return; var pub=$("ed-publier"); if(!pub) return; var haut=pub.parentElement, barre=document.querySelector("#s-editeur .ed-barre-ap"), gauche=document.querySelector("#s-editeur .ed-gauche");
+  if(!barre||!gauche) return;
+  var zoneG=$("ed-actions-g"); if(!zoneG){ zoneG=document.createElement("div"); zoneG.id="ed-actions-g"; zoneG.className="ed-actions-g"; gauche.insertBefore(zoneG,gauche.firstChild); }
+  var zoneA=$("ed-actions-ap"); if(!zoneA){ zoneA=document.createElement("div"); zoneA.id="ed-actions-ap"; zoneA.className="ed-actions-ap"; barre.appendChild(zoneA); }
+  [].slice.call(haut.children).forEach(function(el){ var t=(el.textContent||"").trim();
+    if(/Annuler|Image de partage|Miniature/i.test(t)) zoneG.appendChild(el); else zoneA.appendChild(el); });
+  [].slice.call(barre.querySelectorAll("button,a")).forEach(function(el){ if(el.parentElement!==zoneA&&/Voir ma page|↶|↷/.test(el.textContent||"")) zoneA.insertBefore(el,zoneA.firstChild); });
+  var ord=function(re){ return [].slice.call(zoneA.children).filter(function(x){ return re.test(x.textContent||""); }); };
+  ord(/↶/).concat(ord(/↷/),ord(/Voir ma page/)).forEach(function(x){ zoneA.appendChild(x); }); zoneA.appendChild(pub);
+  var ent=document.querySelector("#s-editeur > .ent"); if(ent){ ent.classList.add("ent-ed-reduite"); var ti=$("ed-titre-aff"), ty=$("ed-type-aff"); if(!$("ed-titre-g")){ zoneG.insertAdjacentHTML("afterbegin",'<div id="ed-titre-g" class="ed-titre-g"></div>'); } $("ed-titre-g").innerHTML="<b>"+esc((ti&&ti.textContent)||"")+"</b><small>"+esc((ty&&ty.textContent)||"")+"</small>"; }
+  document.body.classList.add("ed-range"); }
+var _reV47=rendreEditeur; rendreEditeur=function(){ var r=_reV47.apply(this,arguments); setTimeout(rangerEditeur,0); return r; };
+window.addEventListener("hashchange",function(){ setTimeout(rangerEditeur,80); }); window.addEventListener("resize",function(){ setTimeout(rangerEditeur,80); }); setTimeout(rangerEditeur,600);
+
+/* ---------- A− / A+ : échelle de tailles ---------- */
+var TAILLES=[[0.75,"Très petit"],[0.875,"Petit"],[1,"Normal"],[1.25,"Moyen"],[1.5,"Grand"],[1.85,"Très grand"],[2.25,"Énorme"]];
+function crans(em){ var i=0,d=99; TAILLES.forEach(function(t,k){ var x=Math.abs(t[0]-em); if(x<d){ d=x; i=k; } }); return i; }
+function spanTaille(z){ var s=getSelection(); if(!s.rangeCount) return null; var n=s.getRangeAt(0).commonAncestorContainer; n=n.nodeType===3?n.parentNode:n;
+  while(n&&n!==z){ if(n.tagName==="SPAN"&&n.style&&n.style.fontSize) return n; n=n.parentNode; } return null; }
+function majEtiquette(z){ var b=z&&z.closest(".rf"); if(!b) return; var l=b.querySelector(".rf-taille"); if(!l) return; var sp=spanTaille(z), em=sp?parseFloat(sp.style.fontSize)||1:1; l.textContent=TAILLES[crans(em)][1]; }
+document.addEventListener("selectionchange",function(){ var a=document.activeElement; if(a&&a.classList&&a.classList.contains("rf-zone")) majEtiquette(a); });
+document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target.closest('[data-rf="plus"],[data-rf="moins"]'); if(!bt) return; e.preventDefault(); e.stopImmediatePropagation();
+  var z=bt.closest(".rf").querySelector(".rf-zone"), s=getSelection(); if(!s.rangeCount||s.isCollapsed||!z.contains(s.anchorNode)){ toast("Sélectionne d’abord les mots à agrandir ou réduire."); return; }
+  var pas=bt.dataset.rf==="plus"?1:-1, sp=spanTaille(z), r=s.getRangeAt(0);
+  var memeTexte=sp&&sp.textContent===r.toString();
+  if(sp&&memeTexte){ var i=Math.max(0,Math.min(TAILLES.length-1,crans(parseFloat(sp.style.fontSize)||1)+pas)); sp.style.fontSize=TAILLES[i][0]+"em"; }
+  else { var base=sp?crans(parseFloat(sp.style.fontSize)||1):2, i2=Math.max(0,Math.min(TAILLES.length-1,base+pas)); var frag=r.extractContents(); [].forEach.call(frag.querySelectorAll?frag.querySelectorAll("span"):[],function(x){ x.style.fontSize=""; });
+    var n=document.createElement("span"); n.style.fontSize=(sp?(TAILLES[i2][0]/(parseFloat(sp.style.fontSize)||1)).toFixed(3):TAILLES[i2][0])+"em"; n.appendChild(frag); r.insertNode(n); s.removeAllRanges(); var r2=document.createRange(); r2.selectNodeContents(n); s.addRange(r2); }
+  rfSauver(z); majEtiquette(z); },true);
+/* l'étiquette de taille entre A− et A+ */
+var _chV47=ch;
+ch=function(id,lab,type,val,b){ var h=_chV47.apply(this,arguments); return h.replace('<button type="button" data-rf="plus"','<span class="rf-taille">Normal</span><button type="button" data-rf="plus"'); };
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
