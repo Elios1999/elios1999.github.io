@@ -1350,6 +1350,15 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 .rg-cols i{background:#EDE9FE;border-radius:6px}
 .hero-poignee{position:absolute;right:-14px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:#7C3AED;color:#fff;font-size:13px;display:grid;place-items:center;cursor:ew-resize;box-shadow:0 2px 8px rgba(0,0,0,.4);text-shadow:none;font-weight:800}
 .hero-el{box-sizing:border-box}
+/* ====== Version 43 : outils dans le panneau, choix de la rangée ====== */
+.col-outils{margin-top:12px;padding-top:12px;border-top:1px dashed #DDD6FE}
+.col-outils select{width:100%}
+.rg-n{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.rg-nb{display:flex;flex-direction:column;gap:6px;border:1.5px solid #DDD6FE;background:#fff;border-radius:12px;padding:10px;font:inherit;font-weight:700;cursor:pointer}
+.rg-nb.on{border-color:#7C3AED;background:#F5F3FF}
+.rg-cols-choix{display:grid;gap:8px}
+.rg-col{display:flex;align-items:center;gap:10px}.rg-col span{flex:0 0 90px;font-weight:700;font-size:14px}.rg-col select{flex:1;padding:9px;border-radius:10px;border:1.5px solid #DDD6FE;font:inherit}
+.riche-direct{outline:none!important}
 
 </style>
 </head>
@@ -4450,7 +4459,7 @@ document.addEventListener("click",function(e){
     if(!num){ toast(dp.closest("#apercu")?"Ajoute ton numéro WhatsApp dans les réglages du bloc.":"Le vendeur n’a pas encore mis son numéro."); return; }
     if(dp.closest("#apercu")){ toast("Aperçu : le client écrira sur ton WhatsApp pour demander le prix."); return; }
     if(window.PAGEO_PUBLIC&&unJour("pageo-wa-"+PAGEO_PUBLIC.id)){ window.Pageo.compter(PAGEO_PUBLIC.id,"wa"); contactClic(PAGEO_PUBLIC.id,"whatsapp","Demande de prix : "+a4.nom); }
-    var lien="https://wa.me/"+num+"?text="+encodeURIComponent("Bonjour, quel est le prix de « "+a4.nom+" » ? Je l’ai vu sur ta page."); setTimeout(function(){ location.href=lien; },180); return; }
+    var lien="https://wa.me/"+num+"?text="+encodeURIComponent("Bonjour, quel est le prix de « "+a4.nom+" » ? Je l’ai vu sur ta page."); setTimeout(function(){ if(window.pageoOuvrirApp) window.pageoOuvrirApp(lien); else location.href=lien; },180); return; }
 },true);
 /* Compteur « 2 / 5 » du carrousel */
 document.addEventListener("scroll",function(e){ var g=e.target; if(!g.classList||!g.classList.contains("disp-carrousel")) return; var n=g.parentNode.querySelector(".art-compteur b"); if(n) n.textContent=Math.round(g.scrollLeft/g.clientWidth)+1; },true);
@@ -5297,6 +5306,7 @@ function rassurerFacebook(){
       if(suite) suite(); else location.href=url; };
   }
   if(!fb) return;
+  try{ var _wo=window.open; window.open=function(u){ if(appDe(u)&&/^(https?:|tel:)/i.test(String(u||""))){ carte(appDe(u),String(u)); return null; } return _wo.apply(window,arguments); }; }catch(e){}
   document.addEventListener("click",function(e){ var t=e.target; if(!t.closest||t.closest("#fb-rassure")) return;
     var a=t.closest("a[href]"), h=a?a.getAttribute("href")||"":"", app=appDe(h);
     if(app&&/^(https?:|tel:)/i.test(h)){ e.preventDefault(); e.stopImmediatePropagation(); carte(app,h); return; }
@@ -5624,6 +5634,64 @@ var _raV42=rendreApercu; rendreApercu=function(){ var r=_raV42.apply(this,argume
 var _chV42=ch;
 ch=function(id,lab,type,val,b){ if(type!=="couleur") return _chV42.apply(this,arguments);
   return '<div class="champ"><label for="'+id+'">'+lab+'</label><div style="display:flex;gap:8px;align-items:center"><input id="'+id+'" data-c type="color" value="'+esc(/^#[0-9a-f]{6}$/i.test(val||"")?val:"#ffffff")+'" style="width:56px;height:38px;padding:2px"><small class="aide">'+(val?"":"(couleur d’origine)")+'</small></div></div>'; };
+
+/* =====================================================================
+   VERSION 43 — Les outils reviennent dans le panneau de gauche (rien sur l'aperçu) ;
+   « Ajouter une rangée » : 1, 2 ou 3 colonnes, et l'élément de chaque colonne au choix
+   ===================================================================== */
+/* ---------- 1. Plus de barre ni d'écriture sur l'aperçu : l'aperçu reste propre et ne bouge pas ---------- */
+placerBarre=function(){ var z=$("edit-barre"); if(z) z.remove(); };
+preparerEcritureDirecte=function(){};
+
+/* ---------- 2. Panneau de gauche : les colonnes, sous « Place de ce bloc » ---------- */
+var _rregV43=rendreReglages;
+rendreReglages=function(){ _rregV43.apply(this,arguments); if(ONGLET_REG!=="contenu") return; var b=blocSel(); if(!b) return;
+  var R=petit()?$("reglages-mobile"):$("reglages"), pl=R&&R.querySelector(".place-bloc"); if(!pl||pl.querySelector(".col-outils")) return;
+  if(b.t==="section"){ var bt=pl.querySelector("[data-sec-ajout]"); if(bt) bt.textContent="➕ Ajouter une rangée (1, 2 ou 3 colonnes)"; return; }
+  var s=b.s||{}, fr=String(s.colFr||"1"), dansSec=!!s.dans;
+  pl.insertAdjacentHTML("beforeend",'<div class="col-outils"><label class="lab">Largeur de ce bloc dans la rangée</label>'+
+    '<select data-pl="fr"><option value="1"'+(fr==="1"?" selected":"")+'>↔ Étroite</option><option value="1.5"'+(fr==="1.5"?" selected":"")+'>↔ Moyenne</option><option value="2"'+(fr==="2"?" selected":"")+'>↔ Large</option></select>'+
+    '<label class="case-avis" style="margin-top:8px"><input type="checkbox" data-pl="tel"'+(s.colTel?" checked":"")+'> <span><b>📱 Côte à côte aussi sur téléphone</b><small class="aide" style="display:block">Sinon, sur téléphone, les colonnes se mettent l’une sous l’autre.</small></span></label>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn btn-sec btn-pe" data-plb="col">➕ Colonne à droite</button>'+(dansSec?'<button type="button" class="btn btn-sec btn-pe" data-plb="rg">➕ Rangée en dessous</button>':'')+'</div></div>'); };
+document.addEventListener("change",function(e){ var t=e.target; if(!t.matches||!t.matches("[data-pl]")) return; var b=blocSel(); if(!b) return; b.s=b.s||{};
+  if(t.dataset.pl==="fr") b.s.colFr=t.value; if(t.dataset.pl==="tel") b.s.colTel=t.checked; rendreApercu(); });
+document.addEventListener("click",function(e){ var t=e.target.closest&&e.target.closest("[data-plb]"); if(!t) return; e.preventDefault(); var b=blocSel(); if(!b) return; var i=ED.blocs.indexOf(b);
+  if(t.dataset.plb==="col"){ choisirElement(function(type){ var n=nouveauBloc(type); n.s=n.s||{}; if(b.s.dans) n.s.dans=true; if(b.s.colTel) n.s.colTel=true; b.s.cote=true; ED.blocs.splice(i+1,0,n); ED.sel=n.id; rendreEditeur(); }); return; }
+  if(t.dataset.plb==="rg"){ for(var k=i;k>=0;k--){ if(ED.blocs[k].t==="section") return choisirRangee(ED.blocs[k]); } } });
+
+/* ---------- 3. Choisir les éléments : 1, 2 ou 3 colonnes ---------- */
+function typesProposes(){ return Object.keys(DEFS).filter(function(k){ return k!=="section"&&DEFS[k]&&DEFS[k].nom; }); }
+function optionsTypes(sel){ return typesProposes().map(function(k){ return '<option value="'+k+'"'+(k===sel?" selected":"")+'>'+(DEFS[k].ic||"")+" "+esc(DEFS[k].nom)+'</option>'; }).join("")+'<option value="prix"'+(sel==="prix"?" selected":"")+'>💰 Nom + prix</option>'; }
+function choisirElement(ok){ ouvrirModale('<div><h2 style="font-size:19px;margin:0 0 10px">➕ Quel élément dans la nouvelle colonne ?</h2><select id="ce-t" class="sel" style="width:100%">'+optionsTypes("texte")+'</select><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-pri" id="ce-ok">Ajouter</button><button class="btn btn-sec" id="ce-an">Annuler</button></div></div>');
+  $("ce-an").onclick=fermerModale; $("ce-ok").onclick=function(){ var t=$("ce-t").value; fermerModale(); ok(t==="prix"?"texte":t); if(t==="prix"){ var b=blocSel(); if(b) { b.c.riche="<h3>Nom du produit</h3><p><span style=\"font-size:1.4em\"><b>12 500 FCFA</b></span></p>"; rendreEditeur(); } } }; }
+choisirRangee=function(sec){ var iSec=ED.blocs.indexOf(sec); if(iSec<0) return; var n=2, choix=["image","prix","texte"];
+  var dessin=function(){ var z=$("rg-cols-choix"); if(!z) return; z.innerHTML=[0,1,2].slice(0,n).map(function(i){ return '<div class="rg-col"><span>Colonne '+(i+1)+'</span><select data-rgc="'+i+'">'+optionsTypes(choix[i])+'</select></div>'; }).join(""); };
+  ouvrirModale('<div><h2 style="font-size:19px;margin:0 0 6px">➕ Ajouter une rangée dans la section</h2><p class="aide" style="margin:0 0 10px">1. Choisis le nombre de colonnes. 2. Choisis l’élément de chaque colonne.</p>'+
+    '<div class="rg-n">'+[1,2,3].map(function(k){ return '<button type="button" data-rgn="'+k+'" class="rg-nb'+(k===n?" on":"")+'"><span class="rg-cols" style="--n:'+k+'">'+Array(k+1).join("<i></i>")+'</span>'+k+' colonne'+(k>1?"s":"")+'</button>'; }).join("")+'</div>'+
+    '<div id="rg-cols-choix" class="rg-cols-choix"></div>'+
+    '<label class="case-avis" style="margin-top:10px"><input type="checkbox" id="rg-tel" checked> <span><b>📱 Côte à côte aussi sur téléphone</b></span></label>'+
+    '<div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-pri" id="rg-ok">Ajouter la rangée</button><button class="btn btn-sec" id="rg-an">Annuler</button></div></div>');
+  dessin();
+  [].forEach.call(document.querySelectorAll("[data-rgn]"),function(bt){ bt.onclick=function(){ n=+bt.dataset.rgn; [].forEach.call(document.querySelectorAll("[data-rgn]"),function(x){ x.classList.toggle("on",x===bt); }); dessin(); }; });
+  document.getElementById("rg-cols-choix").addEventListener("change",function(e){ var s=e.target.closest("[data-rgc]"); if(s) choix[+s.dataset.rgc]=s.value; });
+  $("rg-an").onclick=fermerModale;
+  $("rg-ok").onclick=function(){ var tel=$("rg-tel").checked, types=choix.slice(0,n); fermerModale();
+    var pos=finDeSection(iSec), nv=types.map(function(t,k){ var b=nouveauBloc(t==="prix"?"texte":t); b.s=b.s||{}; b.s.dans=true; if(k<types.length-1) b.s.cote=true; if(tel&&n>1) b.s.colTel=true;
+      if(t==="prix") b.c.riche="<h3>Nom du produit</h3><p><span style=\"font-size:1.4em\"><b>12 500 FCFA</b></span></p><p>Livraison rapide · Paiement à la livraison</p>"; return b; });
+    Array.prototype.splice.apply(ED.blocs,[pos,0].concat(nv)); ED.sel=nv[0].id; rendreEditeur(); voirBloc(); toast("Rangée ajoutée ✅ Touche chaque élément pour le modifier."); }; };
+
+/* ---------- 4. Lien Chariow d'un affilié : on refuse le lien de son espace affilié (connexion) ---------- */
+function lienChariowValide(v){ v=String(v||"").trim(); if(!v) return ""; if(!/^https:\/\//i.test(v)) return "Le lien doit commencer par https://";
+  if(/affiliate\.|\/affiliate(\/|$)|\/login|\/signin|\/auth|\/dashboard|\/register|\/signup/i.test(v)) return "Ce lien ouvre ton espace affilié (connexion), pas la page de paiement. Copie le lien d’affiliation du produit Pagéo (celui qui ouvre « Finaliser votre achat »).";
+  return ""; }
+document.addEventListener("click",function(e){ var b=e.target.closest&&e.target.closest("#enr-chariow"); if(!b) return; var err=lienChariowValide(($("lien-chariow")||{}).value);
+  if(err){ e.preventDefault(); e.stopImmediatePropagation(); toast(err); } },true);
+
+/* ---------- 5. Lien de paiement de l'abonnement : jamais l'espace affilié, et informations déjà remplies (si Chariow les accepte) ---------- */
+lienPaiement=function(){ var l=USER.parrainChariow||""; if(l&&lienChariowValide(l)) l=""; l=l||REGLAGES.paiement||""; if(!l) return "";
+  try{ var u=new URL(l), tel=String(USER.tel||USER.telephone||"").replace(/[^\d+]/g,""); try{ if(tel&&tel.charAt(0)!=="+"){ var pp=pays(USER.pays||"BF"); if(pp&&pp[1]) tel=String(pp[1]).replace(/\s/g,"")+tel; } }catch(x){}
+    var p={email:USER.email||"",first_name:USER.prenom||"",last_name:USER.nom||"",name:((USER.prenom||"")+" "+(USER.nom||"")).trim(),phone:tel};
+    Object.keys(p).forEach(function(k){ if(p[k]&&!u.searchParams.has(k)) u.searchParams.set(k,p[k]); }); return u.toString(); }catch(e){ return l; } };
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
