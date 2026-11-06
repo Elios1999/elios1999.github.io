@@ -5787,6 +5787,19 @@ RENDUS.hero=function(b){ var h=_rhV44.apply(this,arguments), c=b.c, t=c.fondType
   var fond=t==="couleur"?"background:"+c1:"background:linear-gradient(135deg,"+c1+","+c2+")";
   return h.replace(/<div class="hero-bg" style="[^"]*"><\/div>/,'<div class="hero-bg" style="'+fond+'"></div>').replace(/<div class="hero-voile" style="[^"]*"><\/div>/,""); };
 
+/* =====================================================================
+   VERSION 45 — Retour à la simplicité : plus de rangées ni de colonnes.
+   Une section = un fond, et on y ajoute les éléments qu'on veut, les uns sous les autres.
+   ===================================================================== */
+/* « Ajouter un élément dans cette section » : le prochain élément choisi va dans la section */
+choisirRangee=function(sec){ ED.sel=sec.id; ED._ajoutDansSection=sec.id; var p=$("tuiles")||$("palette"); if(p) p.scrollIntoView({behavior:"smooth",block:"start"}); toast("Choisis l’élément à ajouter : il ira dans la section."); };
+/* Le panneau de gauche : plus d'outils de colonnes ; « À côté du bloc suivant » seulement s'il est déjà coché (pour pouvoir le décocher) */
+var _rregV45=rendreReglages;
+rendreReglages=function(){ _rregV45.apply(this,arguments); var b=blocSel(); if(!b) return; var R=petit()?$("reglages-mobile"):$("reglages"); if(!R) return;
+  [].forEach.call(R.querySelectorAll(".col-outils"),function(x){ x.remove(); });
+  var c=R.querySelector('[data-place="cote"]'); if(c&&!(b.s&&b.s.cote)){ var l=c.closest("label"); if(l) l.remove(); }
+  var bt=R.querySelector("[data-sec-ajout]"); if(bt) bt.textContent="➕ Ajouter un élément dans cette section"; };
+
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
 else { majProfilHaut(); appliquerLiens(); appliquerPlan(); initPubs(); rendreNotifs(); if(REEL) demarrerReel(); else route(); }
