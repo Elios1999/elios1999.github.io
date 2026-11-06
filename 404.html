@@ -1359,6 +1359,19 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 .rg-cols-choix{display:grid;gap:8px}
 .rg-col{display:flex;align-items:center;gap:10px}.rg-col span{flex:0 0 90px;font-weight:700;font-size:14px}.rg-col select{flex:1;padding:9px;border-radius:10px;border:1.5px solid #DDD6FE;font:inherit}
 .riche-direct{outline:none!important}
+/* ====== Version 44 : rien ne déborde des colonnes ; zone de texte avec sa barre ====== */
+.rangee>*{min-width:0;max-width:100%;overflow-wrap:anywhere;box-sizing:border-box}
+.rangee img,.rangee video,.rangee iframe{max-width:100%;height:auto}
+.rangee .bt,.rangee button,.rangee a.bt{white-space:normal;max-width:100%;box-sizing:border-box}
+.rangee{overflow:hidden}
+@container (max-width:620px){.rangee.rangee-tel[style*="minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)"]{gap:6px;font-size:.9em}}
+.rf{border:1.5px solid #DDD6FE;border-radius:12px;overflow:hidden;background:#fff}
+.rf-barre{display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#F5F3FF;border-bottom:1px solid #EDE9FE}
+.rf-barre button,.rf-barre label,.rf-barre select{border:1px solid #DDD6FE;background:#fff;border-radius:8px;padding:5px 8px;font:600 13px system-ui,-apple-system,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:3px;color:#15112E}
+.rf-barre label input{width:20px;height:16px;border:0;padding:0;background:none}
+.rf-barre select{max-width:150px}
+.rf-zone{min-height:44px;padding:10px 12px;outline:none;font-size:15px;line-height:1.45}
+.rf-zone:focus{background:#FCFBFF}
 
 </style>
 </head>
@@ -5692,6 +5705,87 @@ lienPaiement=function(){ var l=USER.parrainChariow||""; if(l&&lienChariowValide(
   try{ var u=new URL(l), tel=String(USER.tel||USER.telephone||"").replace(/[^\d+]/g,""); try{ if(tel&&tel.charAt(0)!=="+"){ var pp=pays(USER.pays||"BF"); if(pp&&pp[1]) tel=String(pp[1]).replace(/\s/g,"")+tel; } }catch(x){}
     var p={email:USER.email||"",first_name:USER.prenom||"",last_name:USER.nom||"",name:((USER.prenom||"")+" "+(USER.nom||"")).trim(),phone:tel};
     Object.keys(p).forEach(function(k){ if(p[k]&&!u.searchParams.has(k)) u.searchParams.set(k,p[k]); }); return u.toString(); }catch(e){ return l; } };
+
+/* =====================================================================
+   VERSION 44 — Aperçu immobile ; rien ne déborde des colonnes ;
+   TOUS les textes se mettent en forme mot par mot (taille, couleur, police, gras, à la ligne) ;
+   bannière pro : fond en couleur unie ou en dégradé
+   ===================================================================== */
+/* ---------- 1. L'aperçu ne défile plus jamais tout seul ---------- */
+voirBloc=function(){};
+
+/* ---------- 2. Le nettoyage garde aussi la police et l'épaisseur choisies ---------- */
+var POLICES=[["","Police par défaut"],["Poppins","Poppins (moderne)"],["Montserrat","Montserrat (affiche)"],["Bebas Neue","Bebas Neue (TITRE)"],["Playfair Display","Playfair (élégante)"],["Pacifico","Pacifico (écrite)"],["Roboto Slab","Roboto Slab (sérieuse)"]];
+(function(){ try{ var l=document.createElement("link"); l.rel="stylesheet"; l.href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@600;800&family=Pacifico&family=Playfair+Display:wght@700&family=Poppins:wght@500;700&family=Roboto+Slab:wght@600&display=swap"; document.head.appendChild(l); }catch(e){} })();
+nettoyerRiche=function(html){
+  var t=document.createElement("template"); t.innerHTML=String(html||"");
+  var OK={H2:1,H3:1,H4:1,P:1,DIV:1,BR:1,B:1,STRONG:1,I:1,EM:1,U:1,SPAN:1,MARK:1,UL:1,OL:1,LI:1,FONT:1,A:1};
+  var polices=POLICES.map(function(p){ return p[0]; }).filter(Boolean);
+  function propre(n){ [].slice.call(n.childNodes).forEach(function(x){
+      if(x.nodeType===3) return; if(x.nodeType!==1){ x.remove(); return; }
+      if(/^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|TEMPLATE|SVG|MATH)$/i.test(x.tagName)){ x.remove(); return; }
+      if(!OK[x.tagName]){ var f=document.createDocumentFragment(); while(x.firstChild) f.appendChild(x.firstChild); x.replaceWith(f); return propre(n); }
+      var st=x.style, garde=[];
+      if(st.color) garde.push("color:"+st.color); if(st.backgroundColor) garde.push("background-color:"+st.backgroundColor);
+      if(st.textAlign&&/^(left|center|right|justify)$/.test(st.textAlign)) garde.push("text-align:"+st.textAlign);
+      if(st.fontSize&&/^[\d.]+(em|px|rem|%)$/.test(st.fontSize)) garde.push("font-size:"+st.fontSize);
+      if(st.fontWeight&&/^(400|500|600|700|800|900|bold|normal)$/.test(st.fontWeight)) garde.push("font-weight:"+st.fontWeight);
+      var ff=String(st.fontFamily||"").split(",")[0].replace(/["']/g,"").trim(); if(ff&&polices.indexOf(ff)>=0) garde.push('font-family:"'+ff+'",sans-serif');
+      if(x.tagName==="FONT"){ var sp=document.createElement("span"); if(x.getAttribute("color")) garde.push("color:"+x.getAttribute("color")); if(x.getAttribute("size")) garde.push("font-size:"+((typeof TAILLES_FONT!=="undefined"&&TAILLES_FONT[x.getAttribute("size")])||"1em")); while(x.firstChild) sp.appendChild(x.firstChild); x.replaceWith(sp); x=sp; }
+      var al=x.getAttribute&&x.getAttribute("align"); if(al&&/^(left|center|right)$/.test(al)) garde.push("text-align:"+al);
+      var href=x.tagName==="A"?x.getAttribute("href"):null;
+      [].slice.call(x.attributes).forEach(function(a){ x.removeAttribute(a.name); });
+      if(garde.length) x.setAttribute("style",garde.join(";"));
+      if(href&&/^(https?:|mailto:|tel:)/i.test(href)){ x.setAttribute("href",href); x.setAttribute("target","_blank"); x.setAttribute("rel","noopener"); }
+      propre(x); }); }
+  propre(t.content); return t.innerHTML; };
+
+/* ---------- 3. Tous les textes des blocs : une petite zone avec sa barre d'outils ---------- */
+function champRiche(k,type){ return (type==="texte"||type==="zone")&&!/lien|url|video|vid|num|tel|whats|mail|code|slug|image|img|prix|montant|date|heure|redir|groupe|devise|pixel|cle|badge|bouton|place|lab/i.test(k); }
+var _chV44=ch;
+ch=function(id,lab,type,val,b){ var k=String(id).slice(2); if(!b||!champRiche(k,type)) return _chV44.apply(this,arguments);
+  var html=b.c[k+"_html"]||esc(val||"").replace(/\n/g,"<br>");
+  return '<div class="champ large"><label>'+lab+'</label><div class="rf">'+
+    '<div class="rf-barre"><button type="button" data-rf="moins" title="Réduire les mots choisis">A−</button><button type="button" data-rf="plus" title="Agrandir les mots choisis">A+</button>'+
+    '<label title="Couleur des mots choisis">🎨<input type="color" data-rfc="color" value="#E11D48"></label>'+
+    '<button type="button" data-rf="gras" title="Gras"><b>G</b></button>'+
+    '<select data-rfp title="Police des mots choisis">'+POLICES.map(function(p){ return '<option value="'+esc(p[0])+'">'+esc(p[1])+'</option>'; }).join("")+'</select>'+
+    '<button type="button" data-rf="ligne" title="Aller à la ligne (comme Entrée)">↵</button><button type="button" data-rf="effacer" title="Enlever la mise en forme">⌫</button></div>'+
+    '<div class="rf-zone" contenteditable="true" data-rfk="'+esc(k)+'" spellcheck="true">'+html+'</div><small class="aide">Sélectionne un mot pour le changer · Entrée = aller à la ligne</small></div></div>'; };
+var _rfT=null;
+function rfSauver(z){ var b=blocSel(); if(!b) return; var k=z.dataset.rfk; var h=nettoyerRiche(z.innerHTML);
+  b.c[k+"_html"]=h; var tmp=document.createElement("div"); tmp.innerHTML=h.replace(/<br\s*\/?>/gi," ").replace(/<\/(p|div|h2|h3|h4)>/gi," "); b.c[k]=tmp.textContent.replace(/\s+/g," ").trim();
+  clearTimeout(_rfT); _rfT=setTimeout(function(){ rendreApercu(); rendreListe(); },250); }
+document.addEventListener("input",function(e){ var z=e.target.closest&&e.target.closest(".rf-zone"); if(z) rfSauver(z); },true);
+document.addEventListener("keydown",function(e){ var z=e.target.closest&&e.target.closest(".rf-zone"); if(z&&e.key==="Enter"){ e.preventDefault(); document.execCommand("insertLineBreak"); rfSauver(z); } },true);
+function rfStyle(z,prop,val){ var s=getSelection(); if(!s.rangeCount||s.isCollapsed||!z.contains(s.anchorNode)){ toast("Sélectionne d’abord les mots à changer."); return false; }
+  var r=s.getRangeAt(0), sp=document.createElement("span"); sp.style[prop]=val; try{ sp.appendChild(r.extractContents()); r.insertNode(sp); s.removeAllRanges(); var r2=document.createRange(); r2.selectNodeContents(sp); s.addRange(r2); }catch(x){ return false; } return true; }
+function rfTailleActuelle(z){ var s=getSelection(), n=s.anchorNode; n=n&&n.nodeType===3?n.parentNode:n; var px=parseFloat(getComputedStyle(n||z).fontSize)||16, base=parseFloat(getComputedStyle(z).fontSize)||16; return px/base; }
+document.addEventListener("mousedown",function(e){ if(e.target.closest&&e.target.closest(".rf-barre button")) e.preventDefault(); },true);
+document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target.closest("[data-rf]"); if(!bt) return; e.preventDefault(); var z=bt.closest(".rf").querySelector(".rf-zone"); var a=bt.dataset.rf;
+  if(a==="ligne"){ z.focus(); document.execCommand("insertLineBreak"); }
+  else if(a==="gras"){ z.focus(); document.execCommand("bold"); }
+  else if(a==="effacer"){ z.focus(); document.execCommand("removeFormat"); }
+  else { var f=rfTailleActuelle(z)*(a==="plus"?1.25:0.8); f=Math.max(0.5,Math.min(4,f)); rfStyle(z,"fontSize",(Math.round(f*100)/100)+"em"); }
+  rfSauver(z); },true);
+document.addEventListener("change",function(e){ var t=e.target; if(!t.closest||!t.closest(".rf-barre")) return; var z=t.closest(".rf").querySelector(".rf-zone");
+  if(t.matches("[data-rfc]")){ if(rfStyle(z,"color",t.value)) rfSauver(z); }
+  if(t.matches("[data-rfp]")){ if(rfStyle(z,"fontFamily",t.value?'"'+t.value+'",sans-serif':"inherit")) rfSauver(z); t.value=""; } },true);
+/* Le rendu remplace le texte simple par le texte mis en forme (pages et aperçu) */
+var _rbV44=rendreBloc;
+rendreBloc=function(b){ var h=_rbV44.apply(this,arguments), c=b&&b.c; if(!c) return h;
+  Object.keys(c).forEach(function(k){ if(!/_html$/.test(k)) return; var cle=k.slice(0,-5), plain=c[cle]; if(!plain||!c[k]) return;
+    var e=esc(plain), i=h.indexOf(">"+e+"<"); if(i<0) i=h.indexOf(">"+e.replace(/\n/g,"<br>")+"<"); if(i<0) return;
+    h=h.slice(0,i+1)+nettoyerRiche(c[k])+h.slice(i+1+e.length); });
+  return h; };
+
+/* ---------- 4. Bannière pro : fond flou, couleur unie ou dégradé ---------- */
+DEFS.hero.ch=DEFS.hero.ch.concat([["fondType","Arrière-plan de la bannière","choix:flou=Image floutée|couleur=Couleur unie|degrade=Dégradé"],["fondCoul","Couleur du fond","couleur"],["fondCoul2","2ᵉ couleur (dégradé)","couleur"]]);
+var _rhV44=RENDUS.hero;
+RENDUS.hero=function(b){ var h=_rhV44.apply(this,arguments), c=b.c, t=c.fondType||"flou"; if(t==="flou") return h;
+  var c1=/^#[0-9a-f]{6}$/i.test(c.fondCoul||"")?c.fondCoul:"#0F172A", c2=/^#[0-9a-f]{6}$/i.test(c.fondCoul2||"")?c.fondCoul2:"#7C3AED";
+  var fond=t==="couleur"?"background:"+c1:"background:linear-gradient(135deg,"+c1+","+c2+")";
+  return h.replace(/<div class="hero-bg" style="[^"]*"><\/div>/,'<div class="hero-bg" style="'+fond+'"></div>').replace(/<div class="hero-voile" style="[^"]*"><\/div>/,""); };
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
