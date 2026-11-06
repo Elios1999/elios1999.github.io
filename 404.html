@@ -1410,6 +1410,10 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 .rf-commune-t{font-size:12.5px;padding:7px 10px 0;color:#5B21B6}
 .rf-commune .rf-barre{border-bottom:0;border-radius:0 0 12px 12px}
 .rf-zone.rf-active{box-shadow:inset 0 0 0 2px #7C3AED}
+/* ====== Version 49 : l'onglet ✏️ Textes ====== */
+.rf-commune{position:static!important;box-shadow:none!important}
+.rf-commune-t{font-size:12.5px!important;line-height:1.4}
+@media (max-width:820px){.rf-barre{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}.rf-barre>*{flex:0 0 auto}.rf-barre [data-rf="plus"],.rf-barre [data-rf="moins"]{min-width:38px;min-height:34px}.rf-barre .rf-pastille{width:26px;height:26px}}
 
 </style>
 </head>
@@ -5917,6 +5921,34 @@ function vitrine(){ var ed=$("s-editeur"), ouvert=ed&&!ed.classList.contains("ca
   var e=$("ed"); if(!e) return; var y=e.getBoundingClientRect().top+window.scrollY; document.documentElement.style.setProperty("--ed-haut",Math.max(360,innerHeight-y-12)+"px"); window.scrollTo(0,0); }
 setInterval(function(){ var ed=$("s-editeur"); var o=ed&&!ed.classList.contains("cache")&&!petit(); if(o!==document.body.classList.contains("ed-ouvert")) vitrine(); },400);
 window.addEventListener("resize",vitrine); window.addEventListener("hashchange",function(){ setTimeout(vitrine,120); });
+
+/* =====================================================================
+   VERSION 49 — La mise en forme des textes devient un onglet à part : « ✏️ Textes ».
+   L'onglet Contenu garde des cases simples, comme avant.
+   ===================================================================== */
+var _crV49=champRiche;
+champRiche=function(k,type){ return !!window._rfOn&&_crV49(k,type); };
+function champsTexte(b){ var d=DEFS[b.t]; return (d&&d.ch||[]).filter(function(f){ return _crV49(f[0],f[2]); }); }
+var _rregV49=rendreReglages;
+rendreReglages=function(){ var b=blocSel(), voulu=ONGLET_REG, aTextes=b&&champsTexte(b).length;
+  if(voulu==="textes"&&!aTextes) ONGLET_REG="contenu";
+  if(ONGLET_REG==="textes") ONGLET_REG="contenu", window._ongTextes=true; else window._ongTextes=false;
+  _rregV49.apply(this,arguments);
+  var R=petit()?$("reglages-mobile"):$("reglages"); if(!R||!b) return;
+  var tabs=R.querySelector(".reg-onglets");
+  if(tabs&&aTextes&&!tabs.querySelector('[data-ong="textes"]')){ var bt=document.createElement("button"); bt.setAttribute("data-ong","textes"); bt.textContent="✏️ Textes"; var ap=tabs.children[1]; tabs.insertBefore(bt,ap||null); }
+  if(window._ongTextes){ ONGLET_REG="textes";
+    [].forEach.call(R.querySelectorAll(".reg-onglets [data-ong]"),function(x){ x.setAttribute("aria-pressed",String(x.dataset.ong==="textes")); });
+    var g=R.querySelector(".reg-grille"); if(!g) return; window._rfOn=true;
+    g.innerHTML=champsTexte(b).map(function(f){ return ch("c-"+f[0],f[1],f[2],b.c[f[0]],b); }).join("");
+    window._rfOn=false;
+    var bars=g.querySelectorAll(".rf .rf-barre"); if(bars.length){ var com=document.createElement("div"); com.className="rf-commune"; com.innerHTML='<div class="rf-commune-t">1. Touche un texte · 2. Sélectionne des mots · 3. Choisis : <b id="rf-cible"></b></div>'; com.appendChild(bars[0]); [].forEach.call(g.querySelectorAll(".rf .rf-barre"),function(x){ x.remove(); }); g.parentNode.insertBefore(com,g); }
+    window._rfZ=null; return; }
+  /* Contenu : une petite note sur les textes déjà mis en forme */
+  [].forEach.call(R.querySelectorAll(".reg-grille [data-c]"),function(inp){ var k=inp.id.slice(2); if(b.c[k+"_html"]&&!inp.parentNode.querySelector(".note-mef")) inp.insertAdjacentHTML("afterend",'<small class="aide note-mef">✨ Mis en forme dans l’onglet <b>✏️ Textes</b> (si tu modifies ici, la mise en forme est retirée).</small>'); });
+};
+/* Modifier un texte dans « Contenu » retire sa mise en forme (sinon l'ancien texte reviendrait) */
+document.addEventListener("input",function(e){ var t=e.target; if(!t.matches||!t.matches("[data-c]")) return; var b=blocSel(); if(!b) return; var k=t.id.slice(2); if(b.c[k+"_html"]) delete b.c[k+"_html"]; },true);
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
