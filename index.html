@@ -1372,6 +1372,13 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 .rf-barre select{max-width:150px}
 .rf-zone{min-height:44px;padding:10px 12px;outline:none;font-size:15px;line-height:1.45}
 .rf-zone:focus{background:#FCFBFF}
+/* ====== Version 46 : sections simples, bien adaptées au téléphone ; pastilles de couleur ====== */
+.sec-contenu>*{min-width:0;max-width:100%;box-sizing:border-box}
+.sec-contenu img,.sec-contenu video,.sec-contenu iframe{max-width:100%}
+.sec-contenu .bt{max-width:100%;white-space:normal}
+@container (max-width:620px){.sec-titre{font-size:1.25em}.sec-contenu{gap:8px}}
+@media (max-width:620px){.sec-titre{font-size:1.25em}.sec-contenu{gap:8px}}
+.rf-barre .rf-pastille{width:24px;height:24px;padding:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #CBD5E1}
 
 </style>
 </head>
@@ -5747,7 +5754,8 @@ ch=function(id,lab,type,val,b){ var k=String(id).slice(2); if(!b||!champRiche(k,
   var html=b.c[k+"_html"]||esc(val||"").replace(/\n/g,"<br>");
   return '<div class="champ large"><label>'+lab+'</label><div class="rf">'+
     '<div class="rf-barre"><button type="button" data-rf="moins" title="Réduire les mots choisis">A−</button><button type="button" data-rf="plus" title="Agrandir les mots choisis">A+</button>'+
-    '<label title="Couleur des mots choisis">🎨<input type="color" data-rfc="color" value="#E11D48"></label>'+
+    ["#E11D48","#F59E0B","#16A34A","#2563EB","#7C3AED","#111827","#FFFFFF"].map(function(c){ return '<button type="button" class="rf-pastille" data-rfcol="'+c+'" title="Mettre les mots choisis dans cette couleur" style="background:'+c+'"></button>'; }).join("")+
+    '<label title="Autre couleur">🎨<input type="color" data-rfc="color" value="#E11D48"></label><button type="button" data-rf="sanscouleur" title="Enlever la couleur des mots choisis (ou de tout le texte)">🚫 Couleur</button>'+
     '<button type="button" data-rf="gras" title="Gras"><b>G</b></button>'+
     '<select data-rfp title="Police des mots choisis">'+POLICES.map(function(p){ return '<option value="'+esc(p[0])+'">'+esc(p[1])+'</option>'; }).join("")+'</select>'+
     '<button type="button" data-rf="ligne" title="Aller à la ligne (comme Entrée)">↵</button><button type="button" data-rf="effacer" title="Enlever la mise en forme">⌫</button></div>'+
@@ -5762,7 +5770,11 @@ function rfStyle(z,prop,val){ var s=getSelection(); if(!s.rangeCount||s.isCollap
   var r=s.getRangeAt(0), sp=document.createElement("span"); sp.style[prop]=val; try{ sp.appendChild(r.extractContents()); r.insertNode(sp); s.removeAllRanges(); var r2=document.createRange(); r2.selectNodeContents(sp); s.addRange(r2); }catch(x){ return false; } return true; }
 function rfTailleActuelle(z){ var s=getSelection(), n=s.anchorNode; n=n&&n.nodeType===3?n.parentNode:n; var px=parseFloat(getComputedStyle(n||z).fontSize)||16, base=parseFloat(getComputedStyle(z).fontSize)||16; return px/base; }
 document.addEventListener("mousedown",function(e){ if(e.target.closest&&e.target.closest(".rf-barre button")) e.preventDefault(); },true);
+document.addEventListener("click",function(e){ var pc=e.target.closest&&e.target.closest("[data-rfcol]"); if(pc){ e.preventDefault(); var zz=pc.closest(".rf").querySelector(".rf-zone"); if(rfStyle(zz,"color",pc.dataset.rfcol)) rfSauver(zz); } },true);
 document.addEventListener("click",function(e){ var bt=e.target.closest&&e.target.closest("[data-rf]"); if(!bt) return; e.preventDefault(); var z=bt.closest(".rf").querySelector(".rf-zone"); var a=bt.dataset.rf;
+  if(a==="sanscouleur"){ var sel=getSelection(), r=sel.rangeCount&&!sel.isCollapsed&&z.contains(sel.anchorNode)?sel.getRangeAt(0):null;
+    [].forEach.call(z.querySelectorAll("[style]"),function(n){ if(r&&!r.intersectsNode(n)) return; n.style.color=""; if(!n.getAttribute("style")||!n.getAttribute("style").trim()){ n.removeAttribute("style"); if(n.tagName==="SPAN"){ var f=document.createDocumentFragment(); while(n.firstChild) f.appendChild(n.firstChild); n.replaceWith(f); } } });
+    [].forEach.call(z.querySelectorAll("font[color]"),function(n){ if(!r||r.intersectsNode(n)) n.removeAttribute("color"); }); rfSauver(z); return; }
   if(a==="ligne"){ z.focus(); document.execCommand("insertLineBreak"); }
   else if(a==="gras"){ z.focus(); document.execCommand("bold"); }
   else if(a==="effacer"){ z.focus(); document.execCommand("removeFormat"); }
@@ -5799,6 +5811,17 @@ rendreReglages=function(){ _rregV45.apply(this,arguments); var b=blocSel(); if(!
   [].forEach.call(R.querySelectorAll(".col-outils"),function(x){ x.remove(); });
   var c=R.querySelector('[data-place="cote"]'); if(c&&!(b.s&&b.s.cote)){ var l=c.closest("label"); if(l) l.remove(); }
   var bt=R.querySelector("[data-sec-ajout]"); if(bt) bt.textContent="➕ Ajouter un élément dans cette section"; };
+
+/* =====================================================================
+   VERSION 46 — Sections comme avant : un fond, et des blocs les uns sous les autres.
+   Plus aucune colonne (les anciennes « à côté » sont remises l'une sous l'autre).
+   ===================================================================== */
+var _osV46=organiserSections;
+organiserSections=function(conteneur,blocs){ (blocs||[]).forEach(function(b){ if(b&&b.s){ b.s.cote=false; b.s.colTel=false; b.s.colFr=undefined; } }); return _osV46.apply(this,arguments); };
+var _rregV46=rendreReglages;
+rendreReglages=function(){ _rregV46.apply(this,arguments); var R=petit()?$("reglages-mobile"):$("reglages"); if(!R) return;
+  [].forEach.call(R.querySelectorAll('[data-place="cote"]'),function(c){ var l=c.closest("label"); if(l) l.remove(); });
+  [].forEach.call(R.querySelectorAll(".col-outils"),function(x){ x.remove(); }); };
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
