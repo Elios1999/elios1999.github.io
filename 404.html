@@ -6057,6 +6057,14 @@ document.addEventListener("click",async function(e){ var b=e.target.closest&&e.t
     await window.Pageo.creerPage(o); toast("Copie créée ✅ « "+nom+" » : ouvre-la pour la modifier."); await chargerTout(); if(location.hash!=="#pages") location.hash="#pages"; else listePages();
   }catch(err){ toast(msgErreur(err)); } },true);
 
+
+/* ---------- 6. « Dupliquer » aussi sur l'écran « Résultats de la page » ---------- */
+(function(){ var m=$("d-modifier"); if(!m||$("d-dupliquer")) return; var b=document.createElement("button"); b.className="btn btn-sec btn-pe"; b.id="d-dupliquer"; b.type="button"; b.textContent="📄 Dupliquer";
+  m.parentNode.insertBefore(b,m.nextSibling);
+  b.onclick=function(){ var t=document.createElement("button"); t.setAttribute("data-dupliquer",String(pageCourante)); t.style.display="none"; document.body.appendChild(t); t.click(); t.remove(); }; })();
+var _dtV50=detail;
+detail=function(i){ var r=_dtV50.apply(this,arguments); var p=PAGES[i], b=$("d-dupliquer"); if(b) b.style.display=(p&&p.supprimee)?"none":""; return r; };
+
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
 else { majProfilHaut(); appliquerLiens(); appliquerPlan(); initPubs(); rendreNotifs(); if(REEL) demarrerReel(); else route(); }
