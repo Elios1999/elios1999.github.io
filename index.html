@@ -1414,6 +1414,15 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 .rf-commune{position:static!important;box-shadow:none!important}
 .rf-commune-t{font-size:12.5px!important;line-height:1.4}
 @media (max-width:820px){.rf-barre{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}.rf-barre>*{flex:0 0 auto}.rf-barre [data-rf="plus"],.rf-barre [data-rf="moins"]{min-width:38px;min-height:34px}.rf-barre .rf-pastille{width:26px;height:26px}}
+/* ====== Version 50 : relances vertes, choix de page, note du formulaire ====== */
+.btn-relance{background:#22C55E!important;color:#fff!important;border:0!important;border-radius:999px!important;padding:8px 14px!important;font-weight:800!important;cursor:pointer;box-shadow:0 6px 14px rgba(34,197,94,.3);text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-relance:hover{background:#16A34A!important}
+.rl-fait{color:#166534;font-weight:700}.rl-non{color:#B45309;font-weight:700}
+.rl-choix{display:flex;flex-wrap:wrap;gap:6px}
+.tb-choix{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 16px;margin:14px 0}
+.tb-choix label{margin:0}.tb-choix select{flex:1;min-width:220px;padding:11px 12px;border-radius:12px;border:1.5px solid #DDD6FE;font:inherit;font-size:15px}
+.note-form{margin-top:14px;padding:12px 14px;border-radius:14px;background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D;font-size:14px;text-align:left}
+.note-form ul{margin:6px 0 6px 18px;padding:0}.note-form li{margin:3px 0}.note-form small{color:#166534}
 
 </style>
 </head>
@@ -3103,6 +3112,15 @@ function suiviHTML(cfg){
   }
   document.addEventListener("submit",function(e){
     var f=e.target; if(!f||f.tagName!=="FORM") return; var d=lire(f);
+    /* le numéro tapé dans une case sans « name » (fréquent dans les codes HTML) */
+    var tin0=f.querySelector('input[type="tel"], input[id*="tel" i], input[id*="phone" i], input[id*="numero" i], input[id*="whatsapp" i], input[name*="tel" i], input[name*="phone" i], input[name*="whatsapp" i]');
+    if(!String(d.telephone||"").replace(/\D/g,"")&&tin0&&tin0.type!=="hidden"&&tin0.value) d.telephone=tin0.value;
+    /* faux numéros : refusés par Pagéo, avec un message clair (les vrais numéros de tous les pays passent) */
+    var dg=String(d.telephone||"").replace(/\D/g,""), d8=dg.slice(-8), faux=dg.length>0&&(dg.length<6||/^(\d)\1+$/.test(d8)||"01234567890123".indexOf(d8)>=0||"98765432109876".indexOf(d8)>=0);
+    var pgErr=function(m){ var z=f.querySelector(".pageo-err"); if(!z){ z=document.createElement("p"); z.className="pageo-err"; z.setAttribute("style","color:#E5484D;font:700 14px/1.4 system-ui,-apple-system,sans-serif;margin:6px 4px 0"); var ap=tin0?(tin0.closest("div")||tin0):f.lastElementChild; ap.parentNode.insertBefore(z,ap.nextSibling); } z.textContent=m; };
+    if(tin0&&tin0.type!=="hidden"&&(!dg||faux)){ e.preventDefault(); e.stopImmediatePropagation(); pgErr(!dg?"📱 Entre ton numéro WhatsApp pour t’inscrire.":"📱 Ce numéro ne semble pas réel. Vérifie-le."); return; }
+    var zr=f.querySelector(".pageo-err"); if(zr) zr.remove();
+    f._pgValide=String(d.nom||"").trim().length>=2&&dg.length>=6;
     if(f._pgPays){ d.pays=f._pgPays.code; var tt0=String(d.telephone||"").trim(); if(tt0&&!/^(\+|00)/.test(tt0)) d.telephone=f._pgPays.indic+" "+tt0; }
     else if(d.telephone&&!/^(\+|00)/.test(String(d.telephone).trim())){ /* le vendeur a son propre choix du pays : on lit l'indicatif affiché à côté de la case (+226…) */
       try{ var tin=f.querySelector('input[type="tel"], input[name*="tel" i], input[name*="phone" i], input[name*="whatsapp" i], input[name*="numero" i]'), zt=tin&&tin.parentNode?(tin.parentNode.innerText||tin.parentNode.textContent||""):"", mm=zt.match(/\+\s?(\d{1,4})/);
@@ -3117,7 +3135,10 @@ function suiviHTML(cfg){
   },true);
   /* Après le code de la page : si personne ne gère l'envoi, Pagéo affiche le message de remerciement */
   window.addEventListener("submit",function(e){
-    var f=e.target; if(!f||f.getAttribute("data-pageo-envoye")!=="1"||e.defaultPrevented) return;
+    var f=e.target; if(!f||f.getAttribute("data-pageo-envoye")!=="1") return;
+    if(e.defaultPrevented){ /* le code de la page a refusé : si Pagéo juge le nom et le numéro corrects, on inscrit quand même la personne */
+      var errs=f.querySelectorAll(".erreur,.error,.invalid,.is-invalid,[aria-invalid=true]"); if(!(f._pgValide&&errs.length)) return;
+      [].forEach.call(errs,function(x){ x.classList.remove("erreur","error","invalid","is-invalid"); x.removeAttribute("aria-invalid"); }); }
     var act=(f.getAttribute("action")||"").trim();
     if(/^(https?:|mailto:)/i.test(act)&&act.indexOf(location.host)<0) return; /* formulaire vers un autre site : on le laisse partir */
     e.preventDefault();
@@ -5470,6 +5491,15 @@ function paysTelephone(){
   }catch(e){}
 }
 
+
+/* ---------- 4. Pages en code HTML : on retire ce qui bloque l'inscription (sans toucher au design) ---------- */
+function assouplirFormulaires(){
+  try{
+    [].forEach.call(document.querySelectorAll('form input[type="tel"], form input[name*="tel" i], form input[id*="tel" i], form input[name*="phone" i], form input[name*="whatsapp" i], form input[id*="numero" i]'),function(i){ if(i.type==="hidden") return; ["pattern","minlength","maxlength"].forEach(function(a){ i.removeAttribute(a); }); });
+    [].forEach.call(document.querySelectorAll('form input[type="email"]'),function(i){ i.removeAttribute("required"); if(i.placeholder&&!/facultatif/i.test(i.placeholder)) i.placeholder=i.placeholder+" (facultatif)"; });
+  }catch(e){}
+}
+
 /* =====================================================================
    VERSION 40 — Relance en 3 messages (inscrits ET commandes), avec la vidéo
    et le lien de la page du produit. Un toucher par personne, message déjà écrit.
@@ -5949,6 +5979,83 @@ rendreReglages=function(){ var b=blocSel(), voulu=ONGLET_REG, aTextes=b&&champsT
 };
 /* Modifier un texte dans « Contenu » retire sa mise en forme (sinon l'ancien texte reviendrait) */
 document.addEventListener("input",function(e){ var t=e.target; if(!t.matches||!t.matches("[data-c]")) return; var b=blocSel(); if(!b) return; var k=t.id.slice(2); if(b.c[k+"_html"]) delete b.c[k+"_html"]; },true);
+
+/* =====================================================================
+   VERSION 50 — Formulaires HTML vérifiés à la publication ; relances vertes,
+   modifiables et illimitées ; tableau de bord : voir une page en 1 toucher ;
+   dupliquer une page ; deux pages ne peuvent plus avoir le même nom.
+   ===================================================================== */
+/* ---------- 1. À la publication d'une page HTML : ce que Pagéo a vérifié et ajusté ---------- */
+function analyserFormulaire(h){ var n=[]; h=String(h||"");
+  if(!/<form[\s>]/i.test(h)) return n;
+  if(/\/\^\\?\[?[0-9]-[0-9]\]\\d\{\d+\}\$\/|\/\^0\[[0-9]+\]\\d|p\[4\]\.test|pattern=/.test(h)) n.push("Ton formulaire avait des règles de numéro trop strictes : <b>tous les vrais numéros</b>, de tous les pays, sont maintenant acceptés.");
+  if(/type=["']email["'][^>]*required|required[^>]*type=["']email["']|verifierEmail\(true\)/i.test(h)) n.push("L’adresse e-mail devient <b>facultative</b> : moins de cases à remplir, plus d’inscrits.");
+  if(!/(\+226|drapeau|indicatif|choix-pays|country)/i.test(h)) n.push("Le <b>choix du pays avec le drapeau</b> est ajouté devant le numéro, et le pays du visiteur est détecté tout seul.");
+  n.push("Les <b>faux numéros</b> (00000000, 12345678…) sont refusés avec un message clair, pour que tu puisses relancer tes inscrits.");
+  return n; }
+document.addEventListener("click",function(e){ var b=e.target.closest&&e.target.closest("#h-publier"); if(!b) return; window._pgNotes=analyserFormulaire(($("h-code")||{}).value); },true);
+var _pelV50=pageEnLigne;
+pageEnLigne=function(){ var r=_pelV50.apply(this,arguments); var n=window._pgNotes; window._pgNotes=null;
+  if(n&&n.length){ var m=document.querySelector("#modale .modale-boite, #modale > div, #modale"); if(m) m.insertAdjacentHTML("beforeend",'<div class="note-form"><b>🔧 Pagéo a vérifié ton formulaire</b><ul>'+n.map(function(x){ return "<li>"+x+"</li>"; }).join("")+'</ul><small>Le design de ta page n’a pas été modifié.</small></div>'); }
+  return r; };
+
+/* ---------- 2. Relances : boutons verts, message modifiable, illimitées ---------- */
+noterRelance=async function(c){ c.relanceEtape=(c.relanceEtape||0)+1; c.relanceLe=new Date().toISOString(); if(REEL&&c.id){ try{ await window.Pageo.sb.from("contacts").update({relance_le:c.relanceLe,relance_etape:c.relanceEtape}).eq("id",c.id); }catch(e){} } };
+inscritsARelancer=function(){ var auj=new Date().toDateString(); return CONTACTS.filter(function(c){ return c.type==="Inscrit"&&!c.converti&&String(c.tel||"").replace(/\D/g,"").length>=8&&!(c.relanceLe&&new Date(c.relanceLe).toDateString()===auj); }); };
+var _cmdV50=commandes;
+commandes=function(){ _cmdV50.apply(this,arguments);
+  [].forEach.call(document.querySelectorAll("#tb-cmd tr[data-fiche]"),function(tr){ var c=CONTACTS[+tr.dataset.fiche]; if(!c) return; var e=c.relanceEtape||0, quand=c.relanceLe?new Date(c.relanceLe).toLocaleDateString("fr-FR",{day:"numeric",month:"short"}):"";
+    var b=tr.querySelector("[data-rl-un],[data-cc]"); if(b){ b.className=(b.className||"").replace(/\bbtn-[a-z]+\b/g,"")+" btn-relance"; b.textContent="💬 Relancer"; b.removeAttribute("target"); b.style.opacity=""; }
+    var s=tr.querySelector(".rl-non,.rl-fait,.seq-st"); var t=e?("✅ Relancé "+e+" fois · le "+quand):"⏳ Pas encore relancé"; if(s){ s.textContent=t; s.className=(s.classList.contains("seq-st")?"seq-st ":"")+(e?"rl-fait":"rl-non"); } }); };
+function fenetreRelance(c){ var k=c.type==="Inscrit"?"ins":"cmd", n=Math.min(3,(c.relanceEtape||0)+1), tel=String(c.tel||"").replace(/\D/g,"");
+  if(tel.length<8){ toast("Ce contact n’a pas de numéro WhatsApp valide."); return; }
+  var noms=k==="ins"?["Bienvenue + vidéo","Le groupe","Le rappel"]:["Confirmation + produit","La livraison","Après la livraison"];
+  ouvrirModale('<div class="stack"><h2 style="font-size:19px;margin:0 0 4px">💬 Relancer '+esc(c.nom||"ce contact")+'</h2><p class="aide" style="margin:0 0 10px">'+(c.relanceEtape?"Déjà relancé "+c.relanceEtape+" fois.":"Première relance.")+' Choisis un message, modifie-le si tu veux, puis envoie.</p>'+
+    '<div class="rl-choix">'+[1,2,3].map(function(i){ return '<button type="button" class="btn btn-pe '+(i===n?"btn-pri":"btn-sec")+'" data-rlm="'+i+'">'+i+'. '+noms[i-1]+'</button>'; }).join("")+'<button type="button" class="btn btn-pe btn-sec" data-rlm="0">✍️ Mon message</button></div>'+
+    '<textarea id="rl-texte" rows="6" style="width:100%;margin-top:10px">'+esc(texteSeq(c,k,n))+'</textarea>'+
+    '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-relance" id="rl-envoyer" style="flex:1">💬 Envoyer sur WhatsApp</button><button class="btn btn-sec" id="rl-annuler">Annuler</button></div></div>');
+  [].forEach.call(document.querySelectorAll("[data-rlm]"),function(bt){ bt.onclick=function(){ var i=+bt.dataset.rlm; [].forEach.call(document.querySelectorAll("[data-rlm]"),function(x){ x.className="btn btn-pe "+(x===bt?"btn-pri":"btn-sec"); }); $("rl-texte").value=i?texteSeq(c,k,i):""; $("rl-texte").focus(); }; });
+  $("rl-annuler").onclick=fermerModale;
+  $("rl-envoyer").onclick=async function(){ var t=$("rl-texte").value.trim(); if(!t){ toast("Écris le message à envoyer."); return; } window.open("https://wa.me/"+tel+"?text="+encodeURIComponent(t),"_blank"); await noterRelance(c); fermerModale(); commandes(); toast("Relance envoyée ✅"); }; }
+document.addEventListener("click",function(e){ var b=e.target.closest&&e.target.closest("#tb-cmd [data-rl-un], #tb-cmd [data-cc]"); if(!b) return; e.preventDefault(); e.stopImmediatePropagation();
+  var tr=b.closest("tr[data-fiche]"), c=tr?CONTACTS[+tr.dataset.fiche]:null; if(c) fenetreRelance(c); },true);
+
+/* ---------- 3. Tableau de bord : choisir une page et voir ses résultats ---------- */
+function totalPage(p,k){ var a=p&&p.s&&p.s[k]; return a?a.reduce(function(x,y){ return x+(+y||0); },0):0; }
+var _tbV50=tableau;
+tableau=function(){ var r=_tbV50.apply(this,arguments); var sec=$("s-tableau"); if(!sec) return r; var z=$("tb-choix-page"); if(z) z.remove();
+  var ps=PAGES.map(function(p,i){ return {p:p,i:i}; }).filter(function(x){ return !x.p.supprimee; }); if(!ps.length) return r;
+  var h='<div class="carte tb-choix" id="tb-choix-page"><label for="tb-page-sel"><b>📄 Voir les résultats d’une page</b></label><select id="tb-page-sel"><option value="">Choisis une page…</option>'+
+    ps.map(function(x){ var p=x.p, v=totalPage(p,"visites"), ins=totalPage(p,"insc"), cm=totalPage(p,"cmd"); return '<option value="'+x.i+'">'+esc(p.titre)+' — '+v+' visite'+(v>1?"s":"")+(ins?' · '+ins+' inscrit'+(ins>1?"s":""):"")+(cm?' · '+cm+' commande'+(cm>1?"s":""):"")+'</option>'; }).join("")+'</select></div>';
+  var hero=sec.querySelector(".hero-tb"); if(hero) hero.insertAdjacentHTML("afterend",h); else sec.insertAdjacentHTML("afterbegin",h);
+  $("tb-page-sel").onchange=function(){ if(this.value==="") return; pageCourante=+this.value; if(location.hash==="#detail") route(); else location.hash="#detail"; };
+  return r; };
+
+/* ---------- 4. Deux pages ne peuvent pas avoir le même nom ---------- */
+function nomPris(titre,saufId){ var t=String(titre||"").trim().toLowerCase(); return !!t&&PAGES.some(function(p){ return !p.supprimee&&(saufId==null||p.id!==saufId)&&String(p.titre||"").trim().toLowerCase()===t; }); }
+function nomLibre(base){ base=String(base||"Ma page").trim(); if(!nomPris(base)) return base; for(var k=2;k<100;k++){ var n=base+" "+k; if(!nomPris(n)) return n; } return base+" "+Date.now(); }
+function slugLibre(titre){ var b=slugDe(titre), s=b, k=2; while(PAGES.some(function(p){ return p.slug===s; })){ s=b+"-"+k; k++; } return s; }
+(function attendrePageo(){ if(!window.Pageo||!window.Pageo.creerPage){ return setTimeout(attendrePageo,300); }
+  var _cp=window.Pageo.creerPage.bind(window.Pageo), _mp=window.Pageo.majPage.bind(window.Pageo);
+  window.Pageo.creerPage=async function(ch){ if(ch&&ch.titre&&nomPris(ch.titre)) throw new Error("NOM_PRIS:"+nomLibre(ch.titre)); return _cp(ch); };
+  window.Pageo.majPage=async function(id,ch){ if(ch&&ch.titre&&nomPris(ch.titre,id)) return {error:{message:"NOM_PRIS:"+nomLibre(ch.titre)}}; return _mp(id,ch); }; })();
+var _meV50=msgErreur;
+msgErreur=function(err){ var m=String(err&&err.message||err||""); if(m.indexOf("NOM_PRIS:")===0) return "Une de tes pages porte déjà ce nom. Choisis-en un autre, par exemple « "+m.slice(9)+" »."; return _meV50.apply(this,arguments); };
+
+/* ---------- 5. Dupliquer une page ---------- */
+var _lpV50=listePages;
+listePages=function(){ _lpV50.apply(this,arguments);
+  document.querySelectorAll("#tb-pages tr[data-detail]").forEach(function(tr){ var p=PAGES[+tr.dataset.detail]; if(!p||p.supprimee) return; var z=tr.querySelector(".nom-page > div"); if(!z||z.querySelector("[data-dupliquer]")) return;
+    z.insertAdjacentHTML("beforeend",'<button type="button" class="copie-lien" data-dupliquer="'+tr.dataset.detail+'" title="Créer une copie de cette page">📄 Dupliquer</button>'); }); };
+document.addEventListener("click",async function(e){ var b=e.target.closest&&e.target.closest("[data-dupliquer]"); if(!b) return; e.preventDefault(); e.stopImmediatePropagation();
+  var p=PAGES[+b.dataset.dupliquer]; if(!p) return; var nom=prompt("Nom de la copie :",nomLibre(p.titre+" (copie)")); if(nom===null) return; nom=nom.trim(); if(!nom) return;
+  if(nomPris(nom)) return toast("Une de tes pages porte déjà ce nom. Essaie « "+nomLibre(nom)+" ».");
+  if(!REEL){ toast("Mode démonstration : la copie n’est pas enregistrée."); return; }
+  try{ var r=await window.Pageo.sb.from("pages").select("*").eq("id",p.id).single(); if(r.error) throw r.error; var o=r.data||{};
+    ["id","proprietaire","created_at","cree_le","publie_le","maj_le","supprime_le","statut","slug","titre"].forEach(function(k){ delete o[k]; });
+    o.titre=nom; o.slug=slugLibre(nom); o.statut="en_ligne";
+    await window.Pageo.creerPage(o); toast("Copie créée ✅ « "+nom+" » : ouvre-la pour la modifier."); await chargerTout(); if(location.hash!=="#pages") location.hash="#pages"; else listePages();
+  }catch(err){ toast(msgErreur(err)); } },true);
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
