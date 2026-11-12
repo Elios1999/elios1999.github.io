@@ -1423,6 +1423,22 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 .tb-choix label{margin:0}.tb-choix select{flex:1;min-width:220px;padding:11px 12px;border-radius:12px;border:1.5px solid #DDD6FE;font:inherit;font-size:15px}
 .note-form{margin-top:14px;padding:12px 14px;border-radius:14px;background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D;font-size:14px;text-align:left}
 .note-form ul{margin:6px 0 6px 18px;padding:0}.note-form li{margin:3px 0}.note-form small{color:#166534}
+/* ====== Version 51 : éditeur sur téléphone, sections pleine largeur ====== */
+.pb.sec-bloc{margin-left:0!important;margin-right:0!important}
+@media (max-width:1199px){
+  body.ed-tel #s-editeur > .ent{display:none}
+  body.ed-tel #s-editeur .ed,body.ed-tel #s-editeur{transform:none!important;animation:none!important;filter:none!important}
+  body.ed-tel #s-editeur .ed-zone{position:fixed!important;top:var(--ed-tel-top,56px);left:0;right:0;z-index:15;height:46vh;margin:0;padding:6px 10px 8px;background:var(--fond);box-shadow:0 10px 16px -12px rgba(21,17,46,.35);display:flex;flex-direction:column;gap:6px}
+  body.ed-tel #s-editeur .ed-zone{overflow:hidden}
+  body.ed-tel #s-editeur .ed-centre{flex:1 1 auto;min-height:0;display:flex!important;flex-direction:column;gap:6px;height:auto!important}
+  body.ed-tel #s-editeur .ed-zone .cadre{flex:1 1 auto;height:auto!important;max-height:none!important;min-height:0;overflow-y:auto;overscroll-behavior:contain;aspect-ratio:auto!important}
+  body.ed-tel #s-editeur .ed{padding-top:calc(46vh + 10px)}
+  body.ed-tel .ed-actions-tel{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  body.ed-tel .ed-actions-tel>*{flex:0 0 auto}
+  body.ed-tel .ed-actions-tel .btn{padding:7px 10px!important;font-size:13px!important;min-height:0}
+  body.ed-tel .ed-barre-ap{gap:6px;flex-wrap:nowrap;overflow-x:auto}
+  body.ed-tel .ed-barre-ap .btn{padding:6px 9px!important;font-size:12.5px!important}
+}
 
 </style>
 </head>
@@ -3146,7 +3162,7 @@ function suiviHTML(cfg){
     (f._pageoEnvoi||Promise.resolve()).then(function(){ var r=f.getAttribute("data-pageo-redirection")||cfg.red; var dansFB2=/FBAN|FBAV|FB_IAB|FBIOS|Instagram/i.test(navigator.userAgent||""), appR=/chat\.whatsapp|wa\.me|t\.me|telegram/i.test(r||""), recontact=dansFB2&&appR&&f._pageoType!=="commande"; if(recontact) r="";
       var cmdH=f._pageoType==="commande", grp=/chat\.whatsapp|t\.me|telegram|facebook\.com\/groups/i.test(r||""), e2=function(x){ return String(x||"").replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
       var tt=cmdH?"Félicitations ! Ta commande a été enregistrée avec succès.":(f._pageoDeja?"Tu es déjà inscrit(e) !":(recontact?"Ton inscription est validée avec succès !":"Merci pour ton inscription !")), ic=cmdH?"🎉":(f._pageoDeja?"😊":"🎉");
-      var st=cmdH?("Nous allons t’appeler"+(f._pageoTel?" au <b>"+e2(f._pageoTel)+"</b>":"")+" pour te livrer."):(recontact?"📲 On va te contacter très vite sur WhatsApp"+(f._pageoTel?" au <b>"+e2(f._pageoTel)+"</b>":"")+" pour rejoindre le groupe.":(f._pageoDeja?"Pas besoin de recommencer, ton inscription est déjà enregistrée.":"Ton inscription est bien enregistrée."));
+      var st=cmdH?("📞 Le vendeur va te contacter"+(f._pageoTel?" au <b>"+e2(f._pageoTel)+"</b>":"")+" pour valider ta commande et organiser la livraison."):(recontact?"📲 On va te contacter très vite sur WhatsApp"+(f._pageoTel?" au <b>"+e2(f._pageoTel)+"</b>":"")+" pour rejoindre le groupe.":(f._pageoDeja?"Pas besoin de recommencer, ton inscription est déjà enregistrée.":"Ton inscription est bien enregistrée."));
       f.innerHTML='<div style="text-align:center;padding:22px 16px;font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#15112E;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);max-width:440px;margin:10px auto"><div style="font-size:46px;line-height:1">'+ic+'</div><p style="margin:10px 0 6px;font-size:20px;font-weight:800">'+tt+'</p><p style="margin:0 0 '+(r?"14px":"0")+';font-size:15px;line-height:1.5;color:#475569">'+st+'</p>'+
         (r?'<p style="margin:0 0 10px;font-size:14px;color:#64748B">'+(grp?"On t’emmène vers le groupe…":"On t’emmène à la suite…")+'</p><a href="'+e2(r)+'" style="display:inline-block;padding:13px 22px;border-radius:12px;background:'+(grp?"#22C55E":"#5B2BE0")+';color:#fff;font-weight:800;text-decoration:none">'+(grp?"Rejoindre le groupe":"Continuer ➜")+'</a>':"")+'</div>';
       if(r) setTimeout(function(){ if(window.pageoOuvrirApp) window.pageoOuvrirApp(r); else location.href=r; },1800); },function(){ if(bt) bt.disabled=false; alert("Petit souci de connexion, réessaie."); });
@@ -3240,12 +3256,12 @@ async function afficherPagePublique(){
       var recap=(d.produit?'<div class="cmd-ok-r">🛍️ '+esc(d.produit)+(d.quantite&&!/×/.test(d.produit||"")?" × "+d.quantite:"")+(d.montant?'<br><b>Total : '+nb(d.montant)+" "+esc(d.devise)+'</b>':'')+'</div>':'');
       var mot=perso?'<p class="cmd-ok-v">'+esc(b.c.merci).replace(/\n/g,"<br>")+'</p>':'';
       if(versWa){ /* Option WhatsApp : la commande est enregistrée, puis le client l'envoie au vendeur d'un toucher */
-        f.outerHTML='<div class="cmd-ok"><div class="cmd-ok-ic">✅</div><p class="cmd-ok-t">Commande bien reçue'+(prenom?", "+esc(prenom):"")+' !</p>'+recap+mot+
+        f.outerHTML='<div class="cmd-ok"><div class="cmd-ok-ic">✅</div><p class="cmd-ok-t">Félicitations'+(prenom?" "+esc(prenom):"")+' ! Ta commande a été enregistrée avec succès.</p>'+recap+mot+
           '<p class="cmd-ok-s"><b>Dernière étape :</b> touche le bouton pour envoyer ta commande au vendeur sur WhatsApp.</p>'+
           '<a class="cmd-ok-envoi" href="https://wa.me/'+numV+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">💬 Envoyer ma commande sur WhatsApp</a></div>'; }
       else { /* Option Pagéo seulement : le vendeur recontacte le client */
-        f.outerHTML='<div class="cmd-ok"><div class="cmd-ok-ic">🎉</div><p class="cmd-ok-t">Félicitations'+(prenom?" "+esc(prenom):"")+', ta commande a été validée avec succès !</p>'+recap+mot+
-          '<p class="cmd-ok-s">📞 Nous allons te contacter'+(d.telephone?' au <b>'+esc(d.telephone)+'</b>':'')+' pour la livraison.</p></div>'; }
+        f.outerHTML='<div class="cmd-ok"><div class="cmd-ok-ic">🎉</div><p class="cmd-ok-t">Félicitations'+(prenom?" "+esc(prenom):"")+' ! Ta commande a été enregistrée avec succès.</p>'+recap+mot+
+          '<p class="cmd-ok-s">📞 Le vendeur va te contacter'+(d.telephone?' au <b>'+esc(d.telephone)+'</b>':'')+' pour valider ta commande et organiser la livraison.</p></div>'; }
     }
     if(red&&cmd){ setTimeout(function(){ location.href=red; },2500); }
   });
@@ -6064,6 +6080,36 @@ document.addEventListener("click",async function(e){ var b=e.target.closest&&e.t
   b.onclick=function(){ var t=document.createElement("button"); t.setAttribute("data-dupliquer",String(pageCourante)); t.style.display="none"; document.body.appendChild(t); t.click(); t.remove(); }; })();
 var _dtV50=detail;
 detail=function(i){ var r=_dtV50.apply(this,arguments); var p=PAGES[i], b=$("d-dupliquer"); if(b) b.style.display=(p&&p.supprimee)?"none":""; return r; };
+
+/* =====================================================================
+   VERSION 51 — Éditeur sur téléphone : l'aperçu reste en haut, fixe ; les blocs défilent dessous.
+   L'aperçu suit le bloc choisi (à l'intérieur). Sections pleine largeur ; un bloc n'entre dans une
+   section que si on l'a demandé ; un bloc dans une section garde son propre fond.
+   ===================================================================== */
+/* ---------- 1. Un bloc n'entre dans une section que par « ➕ Ajouter un élément dans cette section » ---------- */
+document.addEventListener("click",function(e){ var a=e.target.closest&&e.target.closest("#palette [data-ajout],#tuiles [data-ajout]"); if(!a) return; _ajoutSec=!!ED._ajoutDansSection; },true);
+
+/* ---------- 2. Section pleine largeur ; fond propre d'un bloc dans une section ---------- */
+var _osV51=organiserSections;
+organiserSections=function(conteneur,blocs){ var r=_osV51.apply(this,arguments);
+  [].forEach.call(conteneur.querySelectorAll(".sec-membre[data-b]"),function(el){ var b=(blocs||[]).filter(function(x){ return x.id===el.dataset.b; })[0], s=b&&b.s||{};
+    if(s.fond&&s.fond!=="transparent"){ el.style.setProperty("background",s.fond,"important"); el.style.setProperty("border-radius",(s.arrondi||14)+"px","important"); el.style.setProperty("padding",(s.padding||16)+"px","important"); } });
+  return r; };
+
+/* ---------- 3. L'aperçu suit le bloc choisi (il défile à l'intérieur, la page ne bouge pas) ---------- */
+voirBloc=function(){ setTimeout(function(){ var c=$("cadre"), el=ED.sel?document.querySelector('#apercu [data-b="'+ED.sel+'"]'):null; if(!c||!el) return;
+  var rc=c.getBoundingClientRect(), re=el.getBoundingClientRect(); if(re.top>=rc.top+8&&re.bottom<=rc.bottom-8) return;
+  c.scrollTop=Math.max(0,c.scrollTop+(re.top-rc.top)-12); },60); };
+
+/* ---------- 4. Téléphone : l'aperçu fixe en haut, les boutons au-dessus de l'aperçu ---------- */
+function vitrineTel(){ var ed=$("s-editeur"), ouvert=ed&&!ed.classList.contains("cache")&&petit(); document.body.classList.toggle("ed-tel",!!ouvert); var cd=$("cadre"); if(!ouvert){ if(cd&&cd.dataset.hTel){ cd.style.height=""; delete cd.dataset.hTel; } return; }
+  setTimeout(function(){ var zz=document.querySelector("#s-editeur .ed-zone"), c=$("cadre"); if(!zz||!c) return; var h=Math.max(160,Math.round(zz.getBoundingClientRect().bottom-c.getBoundingClientRect().top-8)); c.style.setProperty("height",h+"px","important"); c.dataset.hTel="1"; },0);
+  var bh=document.querySelector(".barre-haut"), top=bh?Math.max(0,Math.round(bh.getBoundingClientRect().bottom)):0; document.documentElement.style.setProperty("--ed-tel-top",top+"px");
+  var pub=$("ed-publier"), barre=document.querySelector("#s-editeur .ed-barre-ap"); if(!pub||!barre) return;
+  var z=$("ed-actions-tel"); if(!z){ z=document.createElement("div"); z.id="ed-actions-tel"; z.className="ed-actions-tel"; barre.parentNode.insertBefore(z,barre); }
+  var haut=pub.parentElement; if(haut!==z) [].slice.call(haut.children).forEach(function(x){ z.appendChild(x); });
+  [].slice.call(barre.querySelectorAll("button")).forEach(function(x){ if(/↶|↷|Voir ma page/.test(x.textContent||"")) z.insertBefore(x,z.firstChild); }); z.insertBefore(pub,z.firstChild); }
+setInterval(vitrineTel,600); window.addEventListener("resize",vitrineTel); window.addEventListener("hashchange",function(){ setTimeout(vitrineTel,120); });
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
