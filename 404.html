@@ -1424,7 +1424,7 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
 .note-form{margin-top:14px;padding:12px 14px;border-radius:14px;background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D;font-size:14px;text-align:left}
 .note-form ul{margin:6px 0 6px 18px;padding:0}.note-form li{margin:3px 0}.note-form small{color:#166534}
 /* ====== Version 51 : éditeur sur téléphone, sections pleine largeur ====== */
-.pb.sec-bloc{margin-left:0!important;margin-right:0!important}
+.pb.sec-bloc{margin-left:6px!important;margin-right:6px!important}
 @media (max-width:1199px){
   body.ed-tel #s-editeur > .ent{display:none}
   body.ed-tel #s-editeur .ed,body.ed-tel #s-editeur{transform:none!important;animation:none!important;filter:none!important}
@@ -1433,11 +1433,16 @@ html.pg-mode:not(.pg-pret) body::after{content:"";position:fixed;left:50%;top:45
   body.ed-tel #s-editeur .ed-centre{flex:1 1 auto;min-height:0;display:flex!important;flex-direction:column;gap:6px;height:auto!important}
   body.ed-tel #s-editeur .ed-zone .cadre{flex:1 1 auto;height:auto!important;max-height:none!important;min-height:0;overflow-y:auto;overscroll-behavior:contain;aspect-ratio:auto!important}
   body.ed-tel #s-editeur .ed{padding-top:calc(46vh + 10px)}
-  body.ed-tel .ed-actions-tel{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  body.ed-tel .ed-actions-tel{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;width:100%;max-width:100%;min-width:0;align-self:stretch;justify-content:flex-start;flex:0 0 auto}
   body.ed-tel .ed-actions-tel>*{flex:0 0 auto}
   body.ed-tel .ed-actions-tel .btn{padding:7px 10px!important;font-size:13px!important;min-height:0}
-  body.ed-tel .ed-barre-ap{gap:6px;flex-wrap:nowrap;overflow-x:auto}
+  body.ed-tel .ed-barre-ap{gap:6px;flex-wrap:nowrap;overflow-x:auto;width:100%;max-width:100%;min-width:0;justify-content:flex-start!important;align-self:stretch}
   body.ed-tel .ed-barre-ap .btn{padding:6px 9px!important;font-size:12.5px!important}
+}
+
+/* ====== Version 51 b : réglages d'un bloc toujours SOUS l'aperçu (même clavier ouvert) ====== */
+@media (max-width:1199px){
+  body.ed-tel #feuille-reg,body.ed-tel #feuille-ajout{top:calc(var(--ed-tel-top,56px) + 46vh)!important;bottom:0!important;max-height:none!important;height:auto!important;overflow-y:auto;overscroll-behavior:contain;transform:none!important}
 }
 
 </style>
@@ -6110,6 +6115,10 @@ function vitrineTel(){ var ed=$("s-editeur"), ouvert=ed&&!ed.classList.contains(
   var haut=pub.parentElement; if(haut!==z) [].slice.call(haut.children).forEach(function(x){ z.appendChild(x); });
   [].slice.call(barre.querySelectorAll("button")).forEach(function(x){ if(/↶|↷|Voir ma page/.test(x.textContent||"")) z.insertBefore(x,z.firstChild); }); z.insertBefore(pub,z.firstChild); }
 setInterval(vitrineTel,600); window.addEventListener("resize",vitrineTel); window.addEventListener("hashchange",function(){ setTimeout(vitrineTel,120); });
+
+/* Clavier ouvert : le téléphone fait défiler pour montrer la case. On ramène tout à sa place (aperçu en haut, réglages dessous). */
+document.addEventListener("focusin",function(e){ if(!document.body.classList.contains("ed-tel")) return; var f=e.target.closest&&e.target.closest("#feuille-reg,#feuille-ajout"); if(!f) return;
+  setTimeout(function(){ if(window.scrollY) window.scrollTo(0,0); var r=e.target.getBoundingClientRect(), fr=f.getBoundingClientRect(); if(r.bottom>fr.bottom-8||r.top<fr.top) f.scrollTop+=r.top-fr.top-20; },250); });
 
 /* ================= Démarrage ================= */
 if(typeof PUBLIC!=="undefined"&&PUBLIC&&REEL){ afficherPagePublique(); }
